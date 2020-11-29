@@ -1,22 +1,185 @@
-<!doctype html>
 <html>
-
 <head>
-    <meta charset="utf-8">
-    <script type="text/javascript"
-        src="https://cdn.jsdelivr.net/npm/brython@3.9.0/brython.min.js">
-    </script>
+  <meta charset="utf-8">
 </head>
+<body>
+  <script type="text/javascript">
+      // set the pyodide files URL (packages.json, pyodide.asm.data etc)
+      window.languagePluginUrl = 'https://cdn.jsdelivr.net/pyodide/v0.15.0/full/';
+  </script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/pyodide/v0.15.0/full/pyodide.js"></script>
+  <script type="text/javascript">
+    pythonImports = `
+      import numpy as np 
+      from numpy import identity, sum
+      from numpy import transpose as tr
+      from numpy import diagflat as to_diag
+      from numpy.linalg import inv
+    `
 
-<body onload="brython()">
+    pythonDefinitions = `
+      def null_space(A, rcond=None):
+        # taken from scipy.linalg.null_space
+        u, s, vh = np.linalg.svd(A, full_matrices=True)
+        M, N = u.shape[0], vh.shape[1]
+        if rcond is None:
+            rcond = np.finfo(s.dtype).eps * max(M, N)
+        tol = np.amax(s) * rcond
+        num = np.sum(s > tol, dtype=int)
+        Q = vh[num:,:].T.conj()
+        return Q
 
-<script type="text/python">
-from browser import document
+      def expm(A, n_max=255, prec=1e-08):
+        if len(A.shape) != 2 or A.shape[0] != A.shape[1]:
+            raise ValueError('expected a square matrix')
+        res = np.identity(A.shape[0])
+        M = 0 * res 
+        n = 0
+        while np.max(np.abs(res))>prec and n<n_max:
+            M = M + res
+            n = n + 1
+            res = res @ A / n
+        if (n==n_max):
+            raise Warning("reached maximum number of iterations")
+        return M
+    `
 
-document <= "Hello !"
-</script>
+    pythonWorkloadFunction = `
+      def workload(c=2, λ=1, μ1=0.45, μ2=0.55, k=0.1):
+
+        # Definitions
+        μ = lambda i, j : i * μ1 + j * μ2
+        Δ0 = np.diag([μ(i,c-1-i) for i in range(c)])
+        Δ1 = np.diag([μ(i+1,c-1-i) for i in range(c)])
+        Δ2 = np.diag([μ(i,c-i) for i in range(c)])
+
+        μvec = lambda n : [μ(i,n-i) for i in range(n+1)]
+        hΔ = lambda n : np.diag(μvec(n))
+        hB = lambda n : np.array([[(i==j)*(n+1-i)*μ2+(i==j+1)*i*μ1 for j in range(n+1)] for i in range(n+2)])
+        hI = lambda n : np.array([[(i+1==j)*1 for j in range(n+1)] for i in range(n)])
+
+        Q1 = lambda x : expm(-x*Δ1)
+        Q2 = lambda x : expm(-x*Δ2)
+        B1 = np.array([[(i==j)*(i+1)*μ1+(i+1==j)*(c-1-i)*μ2 for j in range(c)] for i in range(c)])
+        B2 = np.array([[(i==j)*(c-i)*μ2+(i-1==j)*i*μ1 for j in range(c)] for i in range(c)])
+
+        tΔ1 = np.linalg.inv(B1) @ Δ1 @ B1
+        tΔ2 = np.linalg.inv(B2) @ Δ2 @ B2
+        tQ1 = lambda x : inv(B1) @ Q1(x) @ B1
+        tQ2 = lambda x : inv(B2) @ Q2(x) @ B2
+
+        # Solving homogeneous equations
+        D1 = lambda x : pow(x,2) * identity(c) - x * (λ * identity(c) - tΔ1) + λ * (B1 - tΔ1)
+        D2 = lambda x : pow(x,2) * identity(c) - x * (λ * identity(c) - tΔ2) + λ * (B2 - tΔ2)
+        eigenvector = lambda x : tr(null_space(tr(x)))
+
+        θ1P = [(λ-μ(i+1,c-1-i)+np.sqrt(pow(λ-μ(i+1,c-1-i),2)+4*λ*μ(0,c-1-i)))/2 for i in range(c)]
+        θ1N = [(λ-μ(i+1,c-1-i)-np.sqrt(pow(λ-μ(i+1,c-1-i),2)+4*λ*μ(0,c-1-i)))/2 for i in range(c)]
+        θ2P = [(λ-μ(i,c-i)+np.sqrt(pow(λ-μ(i,c-i),2)+4*λ*μ(i,0)))/2 for i in range(c)]
+        θ2N = [(λ-μ(i,c-i)-np.sqrt(pow(λ-μ(i,c-i),2)+4*λ*μ(i,0)))/2 for i in range(c)]
+
+        ɸ1P = np.concatenate([eigenvector(D1(θ1P[i])) for i in range(c)])
+        ɸ1N = np.concatenate([eigenvector(D1(θ1N[i])) for i in range(c)])
+        ɸ2P = np.concatenate([eigenvector(D2(θ2P[i])) for i in range(c)])
+        ɸ2N = np.concatenate([eigenvector(D2(θ2N[i])) for i in range(c)])
+
+        U1P = inv(ɸ1P) @ to_diag(θ1P) @ ɸ1P
+        U1N = inv(ɸ1N) @ to_diag(θ1N) @ ɸ1N
+        U2P = inv(ɸ2P) @ to_diag(θ2P) @ ɸ2P
+        U2N = inv(ɸ2N) @ to_diag(θ2N) @ ɸ2N
+
+        # Solving homogeneous equations
+        vη1 = eigenvector(D1(0))
+        Mη1 =  λ * (B1 - tΔ1) - to_diag(vη1)
+        M0 = inv(Mη1)
+        vη2 = eigenvector(D2(0))
+        Mη2 =  λ * (B2 - tΔ2) - to_diag(vη2)
+        M1 = inv(Mη2)
+        M2 = inv((Δ1[-1,-1] + λ) * (Δ1[-1,-1] * identity(c) - tΔ2) + λ * B2)
+
+        H1 = inv(U1P - U1N) @ (expm(k * U1P) - expm(k * U1N))
+        H2 = M0 @ (identity(c) - expm(k* U1N) + U1N @ H1)
+        H3 = H1 + tΔ1 @ H2
+        H4 = - λ * B1 @ H2
+
+        H5 = inv(U1P - U1N) @ (U1P @ expm(k * U1P) - U1N @ expm(k * U1N))
+        H6 = M0 @ (U1N @ expm(k * U1N) - U1N @ H5)
+        H7 = H5 - tΔ1 @ H6
+        H8 = λ * B1 @ H6
+
+        H9 = (tΔ1 - tΔ2) @ M2 @ U2N + tΔ1 @ (tΔ1 - tΔ2) @ M2 
+        H10 = U2N - λ * (identity(c) - B2 @ inv(tΔ2)) @ H9
+        H11 = M1 @ U2N + inv(tΔ2) @ H9
+        H12 = H10 + λ * (B1 @ inv(tΔ1) @ tΔ2 - B2) @ H11
+        H13 = tΔ2 @ H11
+        H14 = λ * B1 @ inv(tΔ1) @ tΔ2 @ H11
+
+        H15 = inv(H7 - H7 @ H9 - H3 @ H12 + H13)
+        H16 = (H14 + H4 @ H12 - H8 + H8 @ H9) @ H15
+
+        H17 = tΔ2 @ M1 - λ * H3 @ (B1 @ inv(tΔ1) @ tΔ2 - B2) @ M1
+        H18 = λ * B1 @ inv(tΔ1) @ tΔ2 @ M1 + λ * H4 @ (B1 @ inv(tΔ1) @ tΔ2 - B2) @ M1
+        H19 = identity(c) - U2N @ H15 @ H17
+        H20 = H16 @ H17 - H18
+
+        # Solving the final system of equations
+        def hC(n):
+            if (n==0):
+                return hB(0) / λ
+            if (n<c-1):
+                return hB(n) @ inv(λ * (identity(n+1) - hC(n-1) @ hI(n))+ hΔ(n) )
+            if (n==c-1):
+                return - U2N @ H15 @ inv(λ * (identity(c) - hC(c-2) @ hI(c-1)) + hΔ(c-1)  - H16)
+            return -1
+
+        def hH(n):
+            if (n==c-1):
+                return hC(c-1)
+            if (n<c-1):
+                return hH(n+1) @ hC(n)
+            return -1
+
+        bcsol = 1/(sum(vη2 @ (H19 + hH(c-1) @ H20)) + sum([sum(vη2 @ hH(n)) for n in range(c)]))
+        δsol = lambda n : bcsol * vη2 @ hH(n)
 
 
+        # Constructing the workload function
+        vf0sol = δsol(c-1) @ H16 - bcsol * vη2 @ U2N @ H15
+        vfksol = vf0sol @ H7 + δsol(c-1) @ H8
+        vFksol = vf0sol @ H3 + δsol(c-1) @ H4
+
+        𝛼0sol = vf0sol @ tΔ1 - λ * δsol(c-1) @ B1
+        𝛼1sol = 𝛼0sol @ inv(tΔ1) @ tΔ2 - λ * vFksol @ (B1 @ inv(tΔ1) @ tΔ2 - B2)
+        𝛼2sol = 𝛼1sol @ inv(tΔ2) - vfksol +  λ * vFksol @ (identity(c) - B2 @ inv(tΔ2))
+
+        F2solInf = bcsol * vη2 @ H19 + δsol(c-1) @ H20
+        Wpos = 1 - sum(F2solInf)
+
+        F1sol = lambda x : (vf0sol + 𝛼0sol @ M0 @ U1N) @ inv(U1P - U1N) @ (expm(x*U1P) - expm(x*U1N)) + 𝛼0sol @ M0 @ (identity(c) - expm(x*U1N))
+        F2sol = lambda x : vFksol @ expm((x-k)*U2N) + (bcsol * vη2 + 𝛼1sol @ M1) @ (identity(c) - expm((x-k)*U2N)) - 𝛼2sol @ ((tΔ1-tΔ2) @ M2 @ expm((x-k)*U2N) - tQ1(x-k) @ (tΔ1-tΔ2) @ M2)
+        Fsol = lambda x :  F1sol(x) if (x<k) else F2sol(x)
+        Wsol = lambda x :  Wpos + sum(Fsol(x))
+
+        # returning the workload function 
+        return Wsol
+    `
+
+    pythonCode = ` 
+      λ=2; μ1=0.75; μ2=1.12; k=0.45; ρ=λ/(2*μ2)
+      crange = range(2,5)
+      xpoints = np.linspace(start=0, stop=20*k, num=250)
+      wfun = workload(2, λ, μ1, μ2, k)
+      print([wfun(x) for x in xpoints])
+    `
+
+    languagePluginLoader.then(() => {
+      return pyodide.loadPackage(['numpy'])
+    }).then(() => {
+        pyodide.runPython(pythonImports);
+        pyodide.runPython(pythonDefinitions);
+        pyodide.runPython(pythonWorkloadFunction);
+        pyodide.runPython(pythonCode);
+    })
+  </script>
 </body>
-
 </html>
