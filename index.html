@@ -34,7 +34,7 @@
       <input type="text" name="param_mu2" id="param_mu2" value="1.12"><br>
       <label for="param_k" style="display: inline-block; width: 20px;">k</label>
       <input type="text" name="param_k" id="param_k" value="0.45"><br><br>
-      <input name="Submit" id="submit" type="submit" value="Update" onclick="updateGraph();"disabled/><br><br>
+      <input name="update" id="update" type="submit" value="Draw" onclick="updateGraph();"disabled/><br><br>
   </div>
   <div id="root"></div>
 
@@ -200,6 +200,8 @@
     var ready= false;
     var Lambda, mu1, mu2, k;
 
+     var el = document.getElementById("update");
+
     function chechData() {
       Lambda = parseFloat(document.getElementById("param_lambda").value)
       mu1 = parseFloat(document.getElementById("param_mu1").value)
@@ -228,12 +230,15 @@
         pyodide.runPython(pythonDefinitions);
         pyodide.runPython(pythonWorkloadFunction);
         ready = true
-        document.getElementById("submit").disabled = false;
+        document.getElementById("update").disabled = false;
     })
 
-    function updateGraph() {
+    async function updateGraph() {
       if (!ready) return false;
       if (!chechData()) return false;
+      el.disabled = true;
+      el.value = 'computing...';
+      await new Promise(r => setTimeout(r, 50));
       pyodide.runPython(pythonCode);
       var data = []
       for (var c = 0; c < cspread; c++) {
@@ -246,6 +251,8 @@
         data.push(trace)
       }
       Plotly.newPlot('root', data);
+      el.value = "Update";
+      el.disabled = false;
     }
   </script>
 </body>
