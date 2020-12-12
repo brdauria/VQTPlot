@@ -1,0 +1,205 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Plotting workload distribution</title>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/8.1.0/math.js"></script>
+  <!-- Load plotly.js into the DOM -->
+  <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+</head>
+<body>
+  <h1>Plots of the workload distribution</h1>
+  <div>
+    <p>Generates the plots of the workload distributions of a special kind of queueing system.</p>
+    <p>This queueing system has <b>c</b> servers and an arrival stream of customers of Poisson type with homogeneous parameter <b>&lambda;</b>.</p>
+    <p>Whenever a customer arrives it is tagged as <i>customer of type <b>1</b></i> on arrival the workload is below the threshold <b>k</b>, 
+      otherwise it is tagged as <i>customer of type <b>2</b></i>.</p>
+    <p>All customers have a service time exponential distributed, 
+      type 1 customers with parameter <b>&mu;<sub>1</sub></b>
+      and type 2 customers with parameter <b>&mu;<sub>2</sub></b>.
+  </div>
+
+  <div id="form">
+    <h2>Parameters:</h2>
+      <label for="interval_c" style="display: inline-block; width: 20px;">c</label>
+      <input type="text" id="interval_c" name="interval_c" value="" readonly disabled><br><br>
+      <label for="param_lambda" style="display: inline-block; width: 20px;">&lambda;</label>
+      <input type="text" name="param_lambda" id="param_lambda" value="2"><br>
+      <label for="param_mu1" style="display: inline-block; width: 20px;">&mu;<sub>1</sub></label>
+      <input type="text" name="param_mu1" id="param_mu1" value="0.75"><br>
+      <label for="param_mu2" style="display: inline-block; width: 20px;">&mu;<sub>2</sub></label>
+      <input type="text" name="param_mu2" id="param_mu2" value="1.12"><br>
+      <label for="param_k" style="display: inline-block; width: 20px;">k</label>
+      <input type="text" name="param_k" id="param_k" value="0.45"><br><br>
+      <input name="update" id="update" type="submit" value="Draw" onclick="updateGraph();"disabled/><br><br>
+  </div>
+  <div id="root"></div>
+  <script> 
+    // Utility functions
+    const kδ = bool => bool ? 1 : 0
+    const range = n => [...Array(n).keys()]
+    const make_array = (n, f) => math.map(range(n), f)
+    const make_diag = (n, f) => math.diag(math.map(range(n), f))
+    const make_matrix = (n, m, f) => math.map(range(n), i => math.map(range(m), j => f(i,j)))
+    const getRow = (M, i) => math.flatten(M.subset(math.index(i, math.range(0, M._size[0])))).toArray();
+    const getColumn = (M, i) => math.flatten(M.subset(math.index(math.range(0, M._size[0]),i))).toArray();
+    const null_space = M => math.multiply(math.ones(M._size[0]),math.inv(math.add(math.ones(M._size[0],M._size[0]), M)));
+    const normalize = v => math.multiply(1/math.norm(v),v);
+    const eigenvector = M => normalize(null_space(M));
+
+    // Parameters
+    const c=5, λ=2, μ1=0.75, μ2=1.12, k=0.45;
+
+    // Definitions
+    const μ = (i, j) => i * μ1 + j * μ2;
+    const Δ0 = make_diag(c, i => μ(i,c-1-i));
+    const Δ1 = make_diag(c, i => μ(i+1,c-1-i));
+    const Δ2 = make_diag(c,  i => μ(i,c-i));
+
+    const μvec = n => make_array(n+1, i => μ(i,n-i));
+    const hΔ = n => math.diag(μvec(n));
+    const hB = n => make_matrix(n+2, n+1, (i,j) => kδ(i==j)*(n+1-i)*μ2+kδ(i==j+1)*i*μ1);
+    const hI = n => make_matrix(n, n+1, (i,j) => kδ(i+1==j));
+
+    const Q1 = x => math.expm(math.multiply(-x, Δ1))
+    const Q2 = x => math.expm(math.multiply(-x, Δ2))
+    const B1 = make_matrix(c, c, (i,j) => kδ(i==j)*(i+1)*μ1+kδ(i+1==j)*(c-1-i)*μ2);
+    const B2 = make_matrix(c, c, (i,j) => kδ(i==j)*(c-i)*μ2+kδ(i-1==j)*i*μ1);
+
+    const tΔ1 = math.multiply(math.inv(B1), Δ1, B1)
+    const tΔ2 = math.multiply(math.inv(B2), Δ2, B2)
+    const tQ1 = x => math.multiply(math.inv(B1), Q1(x), B1)
+    const tQ2 = x => math.multiply(math.inv(B2), Q2(x), B2)
+
+    // Solving homogeneous equations
+    const D1 = x => math.add(
+      math.multiply(x, x, math.identity(c)),
+      math.multiply(-x, λ, math.identity(c)),
+      math.multiply(x, tΔ1),
+      math.multiply(λ, B1),
+      math.multiply(-λ, tΔ1))
+    const D2 = x => math.add(
+      math.multiply(x, x, math.identity(c)),
+      math.multiply(-x, λ, math.identity(c)),
+      math.multiply(x, tΔ2),
+      math.multiply(λ, B2),
+      math.multiply(-λ, tΔ2))
+
+    const θ1P = make_array(c, i => (λ-μ(i+1,c-1-i)+math.sqrt(math.square(λ-μ(i+1,c-1-i))+4*λ*μ(0,c-1-i)))/2)
+    const θ1N = make_array(c, i => (λ-μ(i+1,c-1-i)-math.sqrt(math.square(λ-μ(i+1,c-1-i))+4*λ*μ(0,c-1-i)))/2)
+    const θ2P = make_array(c, i => (λ-μ(i,c-i)+math.sqrt(math.square(λ-μ(i,c-i))+4*λ*μ(i,0)))/2)
+    const θ2N = make_array(c, i => (λ-μ(i,c-i)-math.sqrt(math.square(λ-μ(i,c-i))+4*λ*μ(i,0)))/2)
+
+    const ɸ1P = math.matrix(make_array(c, i => eigenvector(D1(θ1P[i]))));
+    const ɸ1N = math.matrix(make_array(c, i => eigenvector(D1(θ1N[i]))));
+    const ɸ2P = math.matrix(make_array(c, i => eigenvector(D2(θ2P[i]))));
+    const ɸ2N = math.matrix(make_array(c, i => eigenvector(D2(θ2N[i]))));
+
+    const U1P = math.multiply(math.inv(ɸ1P), math.diag(θ1P), ɸ1P);
+    const U1N = math.multiply(math.inv(ɸ1N), math.diag(θ1N), ɸ1N);
+    const U2P = math.multiply(math.inv(ɸ2P), math.diag(θ2P), ɸ2P);
+    const U2N = math.multiply(math.inv(ɸ2N), math.diag(θ2N), ɸ2N);
+
+    // Solving homogeneous equations
+    const vη1 = eigenvector(D1(0));
+    const Mη1 = math.add(
+      math.multiply(λ, B1),
+      math.multiply(-λ, tΔ1),
+      math.multiply(-1, make_array(c, i => vη1)));
+    const M0 = math.inv(Mη1);
+    const vη2 = eigenvector(D2(0));
+    const Mη2 = math.add(
+      math.multiply(λ, B2),
+      math.multiply(-λ, tΔ2),
+      math.multiply(-1, make_array(c, i => vη2)));
+    const M1 = math.inv(Mη2);
+    const M2 = math.inv(math.add(
+        math.multiply((c * μ1 + λ) * (c * μ1), math.identity(c)),
+        math.multiply(-(c * μ1 + λ), tΔ2),
+        math.multiply(λ, B2)));
+
+    const invU1PN = math.inv(math.subtract(U1P, U1N));
+    const kU1P = math.expm(math.multiply(k, U1P));
+    const kU1N = math.expm(math.multiply(k, U1N));
+    const kU1PN = math.subtract(kU1P, kU1N);
+    const kUU1PN = math.subtract(math.multiply(U1P, kU1P), math.multiply(U1N, kU1N));
+    const tΔ12 = math.subtract(tΔ1, tΔ2);
+    const BΔ12 = math.subtract(math.multiply(B1, math.inv(tΔ1), tΔ2), B2);
+
+    const H1 = math.multiply(invU1PN, kU1PN);
+    const H2 = math.multiply(M0, math.subtract(math.add(math.identity(c), math.multiply(U1N, H1)), kU1N));
+    const H3 = math.add(H1, math.multiply(tΔ1, H2));
+    const H4 = math.multiply(-λ, B1, H2);
+
+    const H5 = math.multiply(invU1PN, kUU1PN);
+    const H6 = math.subtract(math.multiply(M0, U1N, kU1N), math.multiply(M0, U1N, H5));
+    const H7 = math.subtract(H5, math.multiply(tΔ1, H6));
+    const H8 = math.multiply(λ, B1, H6);
+
+    const H9 = math.add(math.multiply(tΔ12, M2, U2N), math.multiply(tΔ1, tΔ12, M2));
+    const H10 = math.add(U2N, math.multiply(-λ, math.subtract(math.identity(c), math.multiply(B2, math.inv(tΔ2))), H9)); 
+    const H11 = math.add(math.multiply(M1, U2N), math.multiply(math.inv(tΔ2), H9));
+    const H12 = math.add(H10, math.multiply(λ, math.subtract(math.multiply(B1, math.inv(tΔ1), tΔ2), B2), H11));
+    const H13 = math.multiply(tΔ2, H11);
+    const H14 = math.multiply(λ, B1, math.inv(tΔ1), tΔ2, H11);
+
+    const H15 = math.inv(math.add(H7, math.multiply(-1, H7, H9), math.multiply(-1, H3, H12), H13));
+    const H16 = math.multiply(math.add(H14, math.multiply(H4, H12), math.multiply(-1, H8), math.multiply(H8, H9)), H15);
+
+    const H17 = math.multiply(math.subtract(tΔ2, math.multiply(λ, H3, BΔ12)), M1);
+    const H18 = math.add(math.multiply(λ, B1, math.inv(tΔ1), tΔ2, M1), math.multiply(λ, H4, BΔ12, M1));
+    const H19 = math.subtract(math.identity(c), math.multiply(U2N, H15, H17));
+    const H20 = math.subtract(math.multiply(H16, H17), H18);
+
+    // Solving the final system of equations
+    function hC(n) {
+      if (n==0) return math.multiply(1/λ, hB(0));
+      if (n<c-1) return math.multiply(hB(n), math.inv(math.add(math.multiply(λ, math.subtract(math.identity(n+1), math.multiply(hC(n-1), hI(n)))),hΔ(n))));
+      if (n==c-1) return math.multiply(-1, U2N, H15, math.inv(math.add(math.multiply(λ, math.identity(c)), math.multiply(-λ, hC(c-2), hI(c-1)), math.subtract(hΔ(c-1),  H16))));
+      return -1
+    }
+
+    function hH(n) {
+      if (n==c-1) return hC(c-1);
+      if (n<c-1) return math.multiply(hH(n+1), hC(n));
+      return -1
+    }
+
+    const vη2sum = math.sum(make_array(c, n => math.sum(math.multiply(vη2, hH(n)))));
+    const bcsol = 1/(math.sum(math.multiply(vη2, H19)) +math.sum(math.multiply(vη2, hH(c-1),H20)) + vη2sum)
+    const δsol = n => math.multiply(bcsol, vη2, hH(n));
+
+    // Constructing the workload function
+    const vf0sol = math.subtract(math.multiply(δsol(c-1), H16), math.multiply(bcsol, vη2, U2N, H15));
+    const vfksol = math.add(math.multiply(vf0sol, H7), math.multiply(δsol(c-1), H8));
+    const vFksol = math.add(math.multiply(vf0sol, H3), math.multiply(δsol(c-1), H4));
+
+    const 𝛼0sol = math.subtract(math.multiply(vf0sol, tΔ1), math.multiply(λ, δsol(c-1), B1));
+    const 𝛼1sol = math.subtract(math.multiply(𝛼0sol, math.inv(tΔ1), tΔ2), math.multiply(λ, vFksol, BΔ12));
+    const 𝛼2sol = math.add(math.multiply(𝛼1sol, math.inv(tΔ2)), math.multiply(-1,vfksol), math.multiply(λ, vFksol), math.multiply(-λ, vFksol, B2, math.inv(tΔ2)));
+
+    const F2solInf = math.add(math.multiply(bcsol, vη2, H19), math.multiply(δsol(c-1), H20));
+    const Wpos = 1 - math.sum(F2solInf);
+
+    const F1sol = x => math.add(math.multiply(math.add(vf0sol, math.multiply(𝛼0sol, M0, U1N)), invU1PN, math.subtract(math.expm(math.multiply(x,U1P)), math.expm(math.multiply(x,U1N)))), math.multiply(𝛼0sol, M0, math.subtract(math.identity(c), math.expm(math.multiply(x,U1N)))));
+    const F2sol = x => math.add(
+      math.multiply(vFksol, math.expm(math.multiply(x-k, U2N))),
+      math.multiply(math.add(math.multiply(bcsol, vη2), math.multiply(𝛼1sol, M1)), math.subtract(math.identity(c), math.expm(math.multiply(x-k,U2N)))),
+      math.multiply(-1, 𝛼2sol, tΔ12, M2, math.expm(math.multiply(x-k, U2N))),
+      math.multiply(𝛼2sol, tQ1(x-k), tΔ12, M2)
+    );
+    const Fsol = x => ((x < k) ? F1sol(x) : F2sol(x));
+    const Wsol = x => Wpos + math.sum(Fsol(x));
+
+    var data = []
+    var xpoints = math.multiply(20*k/250, range(250));
+    var trace = {
+      name: 'c = ' + c,
+      x: xpoints,
+      y: math.map(xpoints, Wsol),
+      type: 'scatter'
+    }
+    data.push(trace)
+    Plotly.newPlot('root', data);
+  </script>
+</body>
+</html>
