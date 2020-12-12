@@ -1,39 +1,80 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Plotting workload distribution</title>
+  <!-- Font Awesome 
+    <script defer src="https://use.fontawesome.com/releases/v5.14.0/js/all.js"></script>
+  -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/8.1.0/math.js"></script>
   <!-- Load plotly.js into the DOM -->
   <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
 </head>
 <body>
-  <h1>Plots of the workload distribution</h1>
-  <div>
-    <p>Generates the plots of the workload distributions of a special kind of queueing system.</p>
-    <p>This queueing system has <b>c</b> servers and an arrival stream of customers of Poisson type with homogeneous parameter <b>&lambda;</b>.</p>
-    <p>Whenever a customer arrives it is tagged as <i>customer of type <b>1</b></i> on arrival the workload is below the threshold <b>k</b>, 
-      otherwise it is tagged as <i>customer of type <b>2</b></i>.</p>
-    <p>All customers have a service time exponential distributed, 
-      type 1 customers with parameter <b>&mu;<sub>1</sub></b>
-      and type 2 customers with parameter <b>&mu;<sub>2</sub></b>.
+  <section class="section">
+    <div class="container">
+      <h1 class="title">Workload distribution</h1>
+      <p class="subtitle">Generates the plots of the workload distributions of a special kind of queueing system.</p>
+      <p>This queueing system has <b>c</b> servers and an arrival stream of customers of Poisson type with homogeneous parameter <b>&lambda;</b>.</p>
+      <p>Whenever a customer arrives it is tagged as <i>customer of type <b>1</b></i> on arrival the workload is below the threshold <b>k</b>, otherwise it is tagged as <i>customer of type <b>2</b></i>.</p>
+      <p>All customers have a service time exponential distributed, type 1 customers with parameter <b>&mu;<sub>1</sub></b> and type 2 customers with parameter <b>&mu;<sub>2</sub></b>.</p>
   </div>
+  </section>
 
-  <div id="form">
-    <h2>Parameters:</h2>
-      <label for="interval_c" style="display: inline-block; width: 20px;">c</label>
-      <input type="text" id="interval_c" name="interval_c" value="" readonly disabled><br><br>
-      <label for="param_lambda" style="display: inline-block; width: 20px;">&lambda;</label>
-      <input type="text" name="param_lambda" id="param_lambda" value="2"><br>
-      <label for="param_mu1" style="display: inline-block; width: 20px;">&mu;<sub>1</sub></label>
-      <input type="text" name="param_mu1" id="param_mu1" value="0.75"><br>
-      <label for="param_mu2" style="display: inline-block; width: 20px;">&mu;<sub>2</sub></label>
-      <input type="text" name="param_mu2" id="param_mu2" value="1.12"><br>
-      <label for="param_k" style="display: inline-block; width: 20px;">k</label>
-      <input type="text" name="param_k" id="param_k" value="0.45"><br><br>
-      <input name="update" id="update" type="submit" value="Draw" onclick="updateGraph();"/><br><br>
-  </div>
-  <div id="root"></div>
-  <div style="position: absolute; bottom: 0px;"><a href="index-pyodide.html">Pyodide version</a></div>
+  <section class="main-content columns is-fullheight">
+  
+    <aside class="column is-2 is-fullheight section">
+      <p class="menu-label">Parameters</p>
+      <ul class="menu-list">
+        <li class="control has-icons-left">
+          <input class="input" type="text" id="interval_c" name="interval_c" value="" readonly disabled>  
+          <span class="icon is-left">c</span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_lambda" id="param_lambda" value="2">  
+          <span class="icon is-left">&lambda;</span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_mu1" id="param_mu1" value="0.75">  
+          <span class="icon is-left">&mu;<sub>1</sub></span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_mu2" id="param_mu2" value="1.12">
+          <span class="icon is-left">&mu;<sub>2</sub></span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_k" id="param_k" value="0.45">  
+          <span class="icon is-left">k</span>
+        </li>
+        <li class="button is-link is-outlined is-fullwidth" id="update" onclick="updateGraph();"/>
+          Draw
+        </li>
+      </ul>
+    </aside>
+  
+    <div class="container column is-10">
+      <div class="section">
+        
+        <div class="card is-hidden1">
+          <div class="card-header"><p class="card-header-title">Workload</p></div>
+          <div class="card-content">
+            <div class="content" id="root"></div>
+          </div>
+        </div>
+        <br />
+        
+      </div>
+    </div>
+    
+  </section>
+  
+  <footer class="footer">
+    <div class="content">
+      <p>Open the <a href="index-pyodide.html">Pyodide</a> version.</p>
+    </div>
+  </footer>
+  
   <script> 
     // Utility functions
     const kδ = bool => bool ? 1 : 0
@@ -194,22 +235,46 @@
     var Lambda, mu1, mu2, k;
 
     function chechData() {
-      Lambda = parseFloat(document.getElementById("param_lambda").value)
-      mu1 = parseFloat(document.getElementById("param_mu1").value)
-      mu2 = parseFloat(document.getElementById("param_mu2").value)
-      k = parseFloat(document.getElementById("param_k").value)
-      for (var c = 0; c < cspread; c++) {
-        if (Lambda == (cmin+c)*mu1) return false
+      const elLambda = document.getElementById("param_lambda");
+      const elMu1 = document.getElementById("param_mu1");
+      const elMu2 = document.getElementById("param_mu2");
+      const elK = document.getElementById("param_k");
+      var result =  true;
+      Lambda = parseFloat(elLambda.value)
+      if (Lambda>0) elLambda.classList.remove('has-background-danger-light')
+      else elLambda.classList.add('has-background-danger-light');
+      mu1 = parseFloat(elMu1.value)
+      if (mu1>0) elMu1.classList.remove('has-background-danger-light')
+      else elMu1.classList.add('has-background-danger-light');
+      mu2 = parseFloat(elMu2.value)
+      if (mu2>0) elMu2.classList.remove('has-background-danger-light')
+      else elMu2.classList.add('has-background-danger-light');
+      k = parseFloat(elK.value)
+      if (k>0) elK.classList.remove('has-background-danger-light')
+      else elK.classList.add('has-background-danger-light');
+      for (var c = cmin; c < cmin + cspread; c++)
+        if (Lambda == c*mu1) {
+          result=false; 
+          elLambda.classList.add('has-background-danger-light');
+          elMu1.classList.add('has-background-danger-light');
+          break
+        }
+      if (mu2*cmin<=Lambda) {
+          result=false; 
+          elLambda.classList.add('has-background-danger-light');
+          elMu2.classList.add('has-background-danger-light');
       }
-      return (Lambda>0 && mu1>0 && mu2*cmin>Lambda && k>0)
+      return result && (Lambda>0 && mu1>0 && mu2>0 && k>0);
     }
 
     async function updateGraph() {
       if (!chechData()) return false;
       el.disabled = true;
-      el.value = 'computing...';
+      el.innerHTML = 'computing...';
       await new Promise(r => setTimeout(r, 50));
       var xpoints = math.multiply(20*k/250, range(250));
+      var layout = { font: {size: 12}};
+      var config = {responsive: true}
       var data = []
       for (var c = cmin; c < cmin+cspread; c++) {
         var wfun = workload(c, Lambda, mu1, mu2, k);
@@ -222,8 +287,8 @@
         }
         data.push(trace)
       }
-      Plotly.newPlot('root', data);
-      el.value = "Update";
+      Plotly.newPlot('root', data, layout, config);
+      el.innerHTML = "Update";
       el.disabled = false;
     }
 
