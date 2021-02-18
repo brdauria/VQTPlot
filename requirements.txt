@@ -162,6 +162,3 @@ webencodings==0.5.1
     # via bleach
 widgetsnbextension==3.5.1
     # via ipywidgets
-
-# The following packages are considered to be unsafe in a requirements file:
-# setuptools
