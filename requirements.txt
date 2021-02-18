@@ -6,6 +6,8 @@
 #
 ipywidgets==7.6.3
     # via -r requirements.in
+matplotlib==3.3.4
+    # via -r requirements.in
 numpy==1.20.1
     # via
     #   -r requirements.in
