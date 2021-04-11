@@ -1,0 +1,11 @@
+#tabs-with-content .tabs:not(:last-child) {
+    margin-bottom: 0;
+  }
+  
+#tabs-with-content .main-content {
+   display: none;
+}
+
+#tabs-with-content .main-content.is-active {
+    display: flex;
+}

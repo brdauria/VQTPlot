@@ -7,6 +7,7 @@
     <script defer src="https://use.fontawesome.com/releases/v5.14.0/js/all.js"></script>
   -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
+  <link rel="stylesheet" href="index.css">
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/8.1.0/math.js"></script>
   <!-- Load plotly.js into the DOM -->
   <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
@@ -14,40 +15,49 @@
 <body>
   <section class="section">
     <div class="container">
-      <h1 class="title">Workload distribution</h1>
-      <p class="subtitle">Generates the plots of the workload distributions of a special kind of queueing system.</p>
+      <h1 class="title">Virtual Queueing Time distribution</h1>
+      <p class="subtitle">Generates the plots of the Virtual Queueing Time distributions of a special kind of queueing system.</p>
       <p>This queueing system has <b>c</b> servers and an arrival stream of customers of Poisson type with homogeneous parameter <b>&lambda;</b>.</p>
       <p>Whenever a customer arrives it is tagged as <i>customer of type <b>1</b></i> on arrival the workload is below the threshold <b>k</b>, otherwise it is tagged as <i>customer of type <b>2</b></i>.</p>
       <p>All customers have a service time exponential distributed, type 1 customers with parameter <b>&mu;<sub>1</sub></b> and type 2 customers with parameter <b>&mu;<sub>2</sub></b>.</p>
   </div>
   </section>
 
-  <section class="main-content columns is-fullheight">
+  <div id="tabs-with-content">
+  <div class="tabs is-toggle is-large is-centered">
+    <ul>
+      <li class="is-active" data-tab="0"><a>Distribution</a></li>
+      <li data-tab="1"><a>Density</a></li>
+      <li data-tab="2"><a>Mean</a></li>
+    </ul>
+  </div>
+
+  <section id="sec-CDF" class="main-content columns is-fullheight is-active" data-content="0">
   
     <aside class="column is-2 is-fullheight section">
       <p class="menu-label">Parameters</p>
       <ul class="menu-list">
         <li class="control has-icons-left">
-          <input class="input" type="text" id="interval_c" name="interval_c" value="" readonly disabled>  
+          <input class="input" type="text" name="param_c" value="" readonly disabled>  
           <span class="icon is-left">c</span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_lambda" id="param_lambda" value="2">  
+          <input class="input" type="text" name="param_lambda" value="2">  
           <span class="icon is-left">&lambda;</span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu1" id="param_mu1" value="0.75">  
+          <input class="input" type="text" name="param_mu1" value="0.75">  
           <span class="icon is-left">&mu;<sub>1</sub></span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu2" id="param_mu2" value="1.12">
+          <input class="input" type="text" name="param_mu2" value="1.12">
           <span class="icon is-left">&mu;<sub>2</sub></span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_k" id="param_k" value="0.45">  
+          <input class="input" type="text" name="param_k" value="0.45">  
           <span class="icon is-left">k</span>
         </li>
-        <li class="button is-link is-outlined is-fullwidth" id="update" onclick="updateGraph();"/>
+        <li class="button is-link is-outlined is-fullwidth" name="btn_draw" onclick="updateGraph(0);"/>
           Draw
         </li>
       </ul>
@@ -57,7 +67,7 @@
       <div class="section">
         
         <div class="card is-hidden1">
-          <div class="card-header"><p class="card-header-title">Workload</p></div>
+          <div class="card-header"><p class="card-header-title">Virtual Queueing Time 1</p></div>
           <div class="card-content">
             <div class="content" id="root"></div>
           </div>
@@ -68,6 +78,101 @@
     </div>
     
   </section>
+
+  <section class="main-content columns is-fullheight" data-content="1">
+  
+    <aside class="column is-2 is-fullheight section">
+      <p class="menu-label">Parameters</p>
+      <ul class="menu-list">
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_c" value="" readonly disabled>  
+          <span class="icon is-left">c</span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_lambda" value="2">  
+          <span class="icon is-left">&lambda;</span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_mu1" value="0.75">  
+          <span class="icon is-left">&mu;<sub>1</sub></span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_mu2" value="1.12">
+          <span class="icon is-left">&mu;<sub>2</sub></span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_k" value="0.45">  
+          <span class="icon is-left">k</span>
+        </li>
+        <li class="button is-link is-outlined is-fullwidth" name="btn_draw" onclick="updateGraph(1);"/>
+          Draw
+        </li>
+      </ul>
+    </aside>
+  
+    <div class="container column is-10">
+      <div class="section">
+        
+        <div class="card is-hidden1">
+          <div class="card-header"><p class="card-header-title">Virtual Queueing Time 2</p></div>
+          <div class="card-content">
+            <div class="content" id="root"></div>
+          </div>
+        </div>
+        <br />
+        
+      </div>
+    </div>
+    
+  </section>
+
+  <section class="main-content columns is-fullheight" data-content="2">
+  
+    <aside class="column is-2 is-fullheight section">
+      <p class="menu-label">Parameters</p>
+      <ul class="menu-list">
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_c" value="" readonly disabled>  
+          <span class="icon is-left">c</span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_lambda" value="2">  
+          <span class="icon is-left">&lambda;</span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_mu1" value="0.75">  
+          <span class="icon is-left">&mu;<sub>1</sub></span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_mu2" value="1.12">
+          <span class="icon is-left">&mu;<sub>2</sub></span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_k" value="0.45">  
+          <span class="icon is-left">k</span>
+        </li>
+        <li class="button is-link is-outlined is-fullwidth" name="btn_draw" onclick="updateGraph(2);"/>
+          Draw
+        </li>
+      </ul>
+    </aside>
+  
+    <div class="container column is-10">
+      <div class="section">
+        
+        <div class="card is-hidden1">
+          <div class="card-header"><p class="card-header-title">Virtual Queueing Time 3</p></div>
+          <div class="card-content">
+            <div class="content" id="root"></div>
+          </div>
+        </div>
+        <br />
+        
+      </div>
+    </div>
+    
+  </section>
+</div>
   
   <footer class="footer">
     <div class="content">
@@ -234,40 +339,53 @@
 
     var Lambda, mu1, mu2, k;
 
+    function remove_danger_light(el, bool) {
+      if (bool) el.classList.remove('has-background-danger-light')
+        else el.classList.add('has-background-danger-light');
+    }
+
     function chechData() {
-      const elLambda = document.getElementById("param_lambda");
-      const elMu1 = document.getElementById("param_mu1");
-      const elMu2 = document.getElementById("param_mu2");
-      const elK = document.getElementById("param_k");
+      const section = document.getElementById("sec-CDF");
+      const elLambda = section.querySelector("input[name='param_lambda']");
+      const elMu1 = section.querySelector("input[name='param_mu1']");
+      const elMu2 = section.querySelector("input[name='param_mu2']");
+      const elK = section.querySelector("input[name='param_k']");
       var result =  true;
       Lambda = parseFloat(elLambda.value)
-      if (Lambda>0) elLambda.classList.remove('has-background-danger-light')
-      else elLambda.classList.add('has-background-danger-light');
+      remove_danger_light(elLambda, Lambda>0)
       mu1 = parseFloat(elMu1.value)
-      if (mu1>0) elMu1.classList.remove('has-background-danger-light')
-      else elMu1.classList.add('has-background-danger-light');
+      remove_danger_light(elMu1, mu1>0)
       mu2 = parseFloat(elMu2.value)
-      if (mu2>0) elMu2.classList.remove('has-background-danger-light')
-      else elMu2.classList.add('has-background-danger-light');
+      remove_danger_light(elMu2, mu2>0)
       k = parseFloat(elK.value)
-      if (k>0) elK.classList.remove('has-background-danger-light')
-      else elK.classList.add('has-background-danger-light');
-      for (var c = cmin; c < cmin + cspread; c++)
+      remove_danger_light(elK, k>0)
+      console.log(Lambda, mu1, mu2, k)
+      for (var c = cmin; c < cmin + cspread; c++){
+        console.log(Lambda,c*(mu1-mu2))
         if (Lambda == c*mu1) {
           result=false; 
-          elLambda.classList.add('has-background-danger-light');
-          elMu1.classList.add('has-background-danger-light');
+          remove_danger_light(elLambda, false)
+          remove_danger_light(elMu1, false)
           break
         }
+        if (Lambda == c*(mu1-mu2)) {
+          result=false; 
+          remove_danger_light(elLambda, false)
+          remove_danger_light(elMu1, false)
+          remove_danger_light(elMu2, false)
+          break
+        }
+      }
       if (mu2*cmin<=Lambda) {
           result=false; 
-          elLambda.classList.add('has-background-danger-light');
-          elMu2.classList.add('has-background-danger-light');
+          remove_danger_light(elLambda, false)
+          remove_danger_light(elMu2, false)
       }
       return result && (Lambda>0 && mu1>0 && mu2>0 && k>0);
     }
 
-    async function updateGraph() {
+    async function updateGraph(tab) {
+      console.log("CALLED")
       if (!chechData()) return false;
       el.disabled = true;
       el.innerHTML = 'computing...';
@@ -294,13 +412,52 @@
 
     var cmin = 2;
     var cspread = 3;
-    document.getElementById("interval_c").value = "from " + cmin + " to " + (cmin+cspread);
+    var c_el = document.getElementById("sec-CDF").querySelector("input[name='param_c']")
+    console.log(c_el)
+    c_el.value = "from " + cmin + " to " + (cmin+cspread);
     var ready= false;
     var Lambda, mu1, mu2, k;
 
-    var el = document.getElementById("update");
+    var el = document.getElementById("sec-CDF").querySelector("li[name='btn_draw']");
     updateGraph();
 
+    // MANAGING TABS
+    const TABS = [...document.querySelectorAll('div.tabs li')];
+    const CONTENT = [...document.querySelectorAll('section.main-content')];
+    const ACTIVE_CLASS = 'is-active';
+
+    function initTabs() {
+        TABS.forEach((tab) => {
+          tab.addEventListener('click', (e) => {
+            let selected = tab.getAttribute('data-tab');
+            updateActiveTab(tab);
+            updateActiveContent(selected);
+          })
+        })
+    }
+
+    function updateActiveTab(selected) {
+      TABS.forEach((tab) => {
+        if (tab && tab.classList.contains(ACTIVE_CLASS)) {
+          tab.classList.remove(ACTIVE_CLASS);
+        }
+      });
+      selected.classList.add(ACTIVE_CLASS);
+    }
+
+    function updateActiveContent(selected) {
+      CONTENT.forEach((item) => {
+        if (item && item.classList.contains(ACTIVE_CLASS)) {
+          item.classList.remove(ACTIVE_CLASS);
+        }
+        let data = item.getAttribute('data-content');
+        if (data === selected) {
+          item.classList.add(ACTIVE_CLASS);
+        }
+      });
+    }
+
+    initTabs();
   </script>
 </body>
 </html>
