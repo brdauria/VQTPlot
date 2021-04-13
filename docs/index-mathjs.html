@@ -26,19 +26,19 @@
   <div id="tabs-with-content">
   <div class="tabs is-toggle is-large is-centered">
     <ul>
-      <li class="is-active" data-tab="0"><a>Distribution</a></li>
-      <li data-tab="1"><a>Density</a></li>
-      <li data-tab="2"><a>Mean</a></li>
+      <li class="is-active" data-tab="CDF"><a>Distribution</a></li>
+      <li data-tab="PDF"><a>Density</a></li>
+      <li data-tab="Mean"><a>Mean</a></li>
     </ul>
   </div>
 
-  <section id="sec-CDF" class="main-content columns is-fullheight is-active" data-content="0">
+  <section class="main-content columns is-fullheight is-active" data-content="CDF">
   
     <aside class="column is-2 is-fullheight section">
       <p class="menu-label">Parameters</p>
       <ul class="menu-list">
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_c" value="" readonly disabled>  
+          <input class="input" type="text" name="param_c" value="3;2;4;5">  
           <span class="icon is-left">c</span>
         </li>
         <li class="control has-icons-left">
@@ -57,7 +57,7 @@
           <input class="input" type="text" name="param_k" value="0.45">  
           <span class="icon is-left">k</span>
         </li>
-        <li class="button is-link is-outlined is-fullwidth" name="btn_draw" onclick="updateGraph(0);"/>
+        <li class="button is-link is-outlined is-fullwidth" data-ID="btn_draw" onclick="updateGraph('CDF');"/>
           Draw
         </li>
       </ul>
@@ -67,9 +67,9 @@
       <div class="section">
         
         <div class="card is-hidden1">
-          <div class="card-header"><p class="card-header-title">Virtual Queueing Time 1</p></div>
+          <div class="card-header"><p class="card-header-title">CDF of the VQT</p></div>
           <div class="card-content">
-            <div class="content" id="root"></div>
+            <div class="content" data-ID="root"></div>
           </div>
         </div>
         <br />
@@ -79,13 +79,13 @@
     
   </section>
 
-  <section class="main-content columns is-fullheight" data-content="1">
+  <section class="main-content columns is-fullheight" data-content="PDF">
   
     <aside class="column is-2 is-fullheight section">
       <p class="menu-label">Parameters</p>
       <ul class="menu-list">
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_c" value="" readonly disabled>  
+          <input class="input" type="text" name="param_c" value="4;5">  
           <span class="icon is-left">c</span>
         </li>
         <li class="control has-icons-left">
@@ -104,7 +104,7 @@
           <input class="input" type="text" name="param_k" value="0.45">  
           <span class="icon is-left">k</span>
         </li>
-        <li class="button is-link is-outlined is-fullwidth" name="btn_draw" onclick="updateGraph(1);"/>
+        <li class="button is-link is-outlined is-fullwidth" data-ID="btn_draw" onclick="updateGraph('PDF');"/>
           Draw
         </li>
       </ul>
@@ -114,9 +114,9 @@
       <div class="section">
         
         <div class="card is-hidden1">
-          <div class="card-header"><p class="card-header-title">Virtual Queueing Time 2</p></div>
+          <div class="card-header"><p class="card-header-title">PDF of the VQT</p></div>
           <div class="card-content">
-            <div class="content" id="root"></div>
+            <div class="content" data-ID="root"></div>
           </div>
         </div>
         <br />
@@ -126,13 +126,13 @@
     
   </section>
 
-  <section class="main-content columns is-fullheight" data-content="2">
+  <section class="main-content columns is-fullheight" data-content="Mean">
   
     <aside class="column is-2 is-fullheight section">
       <p class="menu-label">Parameters</p>
       <ul class="menu-list">
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_c" value="" readonly disabled>  
+          <input class="input" type="text" name="param_c" value="2;3">  
           <span class="icon is-left">c</span>
         </li>
         <li class="control has-icons-left">
@@ -151,7 +151,7 @@
           <input class="input" type="text" name="param_k" value="0.45">  
           <span class="icon is-left">k</span>
         </li>
-        <li class="button is-link is-outlined is-fullwidth" name="btn_draw" onclick="updateGraph(2);"/>
+        <li class="button is-link is-outlined is-fullwidth" data-ID="btn_draw" onclick="updateGraph('Mean');"/>
           Draw
         </li>
       </ul>
@@ -161,9 +161,9 @@
       <div class="section">
         
         <div class="card is-hidden1">
-          <div class="card-header"><p class="card-header-title">Virtual Queueing Time 3</p></div>
+          <div class="card-header"><p class="card-header-title">Mean Virtual Queueing Time</p></div>
           <div class="card-content">
-            <div class="content" id="root"></div>
+            <div class="content" data-ID="root"></div>
           </div>
         </div>
         <br />
@@ -337,56 +337,100 @@
       return Wsol;
     }
 
-    var Lambda, mu1, mu2, k;
+    var lambda, mu1, mu2, k, c;
+    var validated ={'CDF':false, 'PDF':false, 'Mean':false}
+
+    // apporxeq & chop functions
+    let approxeq = (v1, v2, epsilon = 0.001) => Math.abs(v1 - v2) <= epsilon;
+    let chop = (v, epsilon = 0.001) => Math.abs(v) < epsilon ? 0 : v;
+    let capitalized = name => name.charAt(0).toUpperCase() + name.slice(1)
+
 
     function remove_danger_light(el, bool) {
       if (bool) el.classList.remove('has-background-danger-light')
         else el.classList.add('has-background-danger-light');
+      return bool
     }
 
-    function chechData() {
-      const section = document.getElementById("sec-CDF");
-      const elLambda = section.querySelector("input[name='param_lambda']");
-      const elMu1 = section.querySelector("input[name='param_mu1']");
-      const elMu2 = section.querySelector("input[name='param_mu2']");
-      const elK = section.querySelector("input[name='param_k']");
+    function read_param(s) {
+      return s.split(";").map(parseFloat)
+    }
+
+    function assign_param(el) {
+      let name = el.name.substring(6)
+      let value = read_param(el.value)
+      eval(`${name}=[${value}]`);
+      eval(`el${capitalized(name)}=el`);
+    }
+
+    function is_correct(v,n) {
+      if (typeof(n) == "undefined") n = n_curves
+      res = v.length == 1 || v.length == n
+      res = res && v.every(x=>x>0) 
+      return res 
+    }
+
+    function get(v,n) {
+      return (v.length == 1) ? v[0] : v[n]
+    }
+
+    function get_legend_entry(n) {
+      res = ""
+      if (c.length != 1) res += `c=${c[n]}`
+      if (lambda.length != 1) {
+        if (res!="") res+=", "
+        res += `\u03BB=${lambda[n]}`
+      }
+      if (mu1.length != 1) {
+        if (res!="") res+=", "
+        res += `\u03BC1=${mu1[n]}`
+      }
+      if (mu2.length != 1) {
+        if (res!="") res+=", "
+        res += `\u03BC2=${mu2[n]}`
+      }
+      return res
+    }
+
+    function chechData(tab="CDF") {
+      const section = document.querySelector(`section[data-content=${tab}]`);
+      section.querySelectorAll("input[name^='param_']").forEach(assign_param);
       var result =  true;
-      Lambda = parseFloat(elLambda.value)
-      remove_danger_light(elLambda, Lambda>0)
-      mu1 = parseFloat(elMu1.value)
-      remove_danger_light(elMu1, mu1>0)
-      mu2 = parseFloat(elMu2.value)
-      remove_danger_light(elMu2, mu2>0)
-      k = parseFloat(elK.value)
-      remove_danger_light(elK, k>0)
-      console.log(Lambda, mu1, mu2, k)
-      for (var c = cmin; c < cmin + cspread; c++){
-        console.log(Lambda,c*(mu1-mu2))
-        if (Lambda == c*mu1) {
+      n_curves = Math.max(...[lambda, mu1, mu2, k, c].map(x => x.length));
+      result &= remove_danger_light(elC, is_correct(c))
+      result &= remove_danger_light(elLambda, is_correct(lambda))
+      result &= remove_danger_light(elMu1, is_correct(mu1))
+      result &= remove_danger_light(elMu2, is_correct(mu2))
+      result &= remove_danger_light(elK, is_correct(k))
+      
+      for (var ix = 0; ix < n_curves; ix++){
+        if (approxeq(get(lambda,ix),get(c,ix)*get(mu1,ix))) {
           result=false; 
           remove_danger_light(elLambda, false)
           remove_danger_light(elMu1, false)
           break
         }
-        if (Lambda == c*(mu1-mu2)) {
+        if (approxeq(get(lambda,ix),get(c,ix)*(get(mu1,ix)-get(mu2,ix)))) {
           result=false; 
           remove_danger_light(elLambda, false)
           remove_danger_light(elMu1, false)
           remove_danger_light(elMu2, false)
           break
         }
-      }
-      if (mu2*cmin<=Lambda) {
+        if (get(mu2,ix)*get(c,ix)<=get(lambda,ix)) {
           result=false; 
           remove_danger_light(elLambda, false)
           remove_danger_light(elMu2, false)
+          break
+        }
       }
-      return result && (Lambda>0 && mu1>0 && mu2>0 && k>0);
+      return result;
     }
 
     async function updateGraph(tab) {
-      console.log("CALLED")
-      if (!chechData()) return false;
+      if (!chechData(tab)) return false;
+      const section = document.querySelector(`section[data-content=${tab}]`);
+      let el = section.querySelector("li[data-ID='btn_draw']");
       el.disabled = true;
       el.innerHTML = 'computing...';
       await new Promise(r => setTimeout(r, 50));
@@ -394,32 +438,31 @@
       var layout = { font: {size: 12}};
       var config = {responsive: true}
       var data = []
-      for (var c = cmin; c < cmin+cspread; c++) {
-        var wfun = workload(c, Lambda, mu1, mu2, k);
+      for (var ix = 0; ix < n_curves; ix++){
+        var wfun = workload(get(c,ix), get(lambda,ix), get(mu1,ix), get(mu2,ix), get(k,ix));
         var ypoints = math.map(xpoints, wfun);
         var trace = {
-          name: 'c = ' + c,
+          name: get_legend_entry(ix),
           x: xpoints,
           y: ypoints,
           type: 'scatter'
         }
         data.push(trace)
       }
-      Plotly.newPlot('root', data, layout, config);
+      let div = section.querySelector("div[data-ID='root']");
+      Plotly.newPlot(div, data, layout, config);
       el.innerHTML = "Update";
       el.disabled = false;
+      validated[tab] = true;
     }
 
     var cmin = 2;
     var cspread = 3;
-    var c_el = document.getElementById("sec-CDF").querySelector("input[name='param_c']")
-    console.log(c_el)
-    c_el.value = "from " + cmin + " to " + (cmin+cspread);
     var ready= false;
-    var Lambda, mu1, mu2, k;
+    var lambda, mu1, mu2, k, c, n_curves;
+    var elLambda, elMu1, elMu2, elK, elC;
 
-    var el = document.getElementById("sec-CDF").querySelector("li[name='btn_draw']");
-    updateGraph();
+
 
     // MANAGING TABS
     const TABS = [...document.querySelectorAll('div.tabs li')];
@@ -434,6 +477,7 @@
             updateActiveContent(selected);
           })
         })
+        updateGraph('CDF')
     }
 
     function updateActiveTab(selected) {
@@ -453,6 +497,7 @@
         let data = item.getAttribute('data-content');
         if (data === selected) {
           item.classList.add(ACTIVE_CLASS);
+          if (!validated[selected]) updateGraph(selected)
         }
       });
     }
