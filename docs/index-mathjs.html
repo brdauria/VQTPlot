@@ -85,23 +85,23 @@
       <p class="menu-label">Parameters</p>
       <ul class="menu-list">
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_c" value="4;5">  
+          <input class="input" type="text" name="param_c" value="3">  
           <span class="icon is-left">c</span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_lambda" value="2">  
+          <input class="input" type="text" name="param_lambda" value="5">  
           <span class="icon is-left">&lambda;</span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu1" value="0.75">  
+          <input class="input" type="text" name="param_mu1" value="1.2;1.6;1.65;1.7;1.8">  
           <span class="icon is-left">&mu;<sub>1</sub></span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu2" value="1.12">
+          <input class="input" type="text" name="param_mu2" value="2">
           <span class="icon is-left">&mu;<sub>2</sub></span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_k" value="0.45">  
+          <input class="input" type="text" name="param_k" value="6">  
           <span class="icon is-left">k</span>
         </li>
         <li class="button is-link is-outlined is-fullwidth" data-ID="btn_draw" onclick="updateGraph('PDF');"/>
@@ -132,23 +132,23 @@
       <p class="menu-label">Parameters</p>
       <ul class="menu-list">
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_c" value="2;3">  
+          <input class="input" type="text" name="param_c" value="3">  
           <span class="icon is-left">c</span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_lambda" value="2">  
+          <input class="input" type="text" name="param_lambda" value="5">  
           <span class="icon is-left">&lambda;</span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu1" value="0.75">  
+          <input class="input" type="text" name="param_mu1" value="1.2;1.6;1.65;1.7;1.8">  
           <span class="icon is-left">&mu;<sub>1</sub></span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu2" value="1.12">
+          <input class="input" type="text" name="param_mu2" value="2">
           <span class="icon is-left">&mu;<sub>2</sub></span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_k" value="0.45">  
+          <input class="input" type="text" name="param_k" value="6">  
           <span class="icon is-left">k</span>
         </li>
         <li class="button is-link is-outlined is-fullwidth" data-ID="btn_draw" onclick="updateGraph('Mean');"/>
@@ -176,7 +176,8 @@
   
   <footer class="footer">
     <div class="content">
-      <p>Open the <a href="index-pyodide.html">Pyodide</a> version.</p>
+      <span>Open the <a href="index-pyodide.html">Pyodide</a> version.</span> 
+      <span>Open the <a href="https://github.com/brdauria/VQTPlot">Github repository</a>.</span> 
     </div>
   </footer>
   
@@ -189,9 +190,14 @@
     const make_matrix = (n, m, f) => math.map(range(n), i => math.map(range(m), j => f(i,j)))
     const getRow = (M, i) => math.flatten(M.subset(math.index(i, math.range(0, M._size[0])))).toArray();
     const getColumn = (M, i) => math.flatten(M.subset(math.index(math.range(0, M._size[0]),i))).toArray();
+    // apporxeq & chop functions
+    let approxeq = (v1, v2, epsilon = 0.001) => Math.abs(v1 - v2) <= epsilon;
+    let chop = (v, epsilon = 0.000001) => Math.abs(v) < epsilon ? 0 : v;
+    let capitalized = name => name.charAt(0).toUpperCase() + name.slice(1)
     const null_space = M => math.multiply(math.ones(M._size[0]),math.inv(math.add(math.ones(M._size[0],M._size[0]), M)));
     const normalize = v => math.multiply(1/math.norm(v),v);
-    const eigenvector = M => normalize(null_space(M));
+    const eigenvector = M => normalize(null_space(M.map(chop)));
+
 
     function workload(c=2, λ=1, μ1=0.45, μ2=0.55, k=0.1) {
       // Definitions
@@ -262,6 +268,8 @@
           math.multiply(-(c * μ1 + λ), tΔ2),
           math.multiply(λ, B2)));
 
+      const invtΔ1 = math.inv(tΔ1);
+      const invU2N = math.inv(U2N);
       const invU1PN = math.inv(math.subtract(U1P, U1N));
       const kU1P = math.expm(math.multiply(k, U1P));
       const kU1N = math.expm(math.multiply(k, U1N));
@@ -269,6 +277,11 @@
       const kUU1PN = math.subtract(math.multiply(U1P, kU1P), math.multiply(U1N, kU1N));
       const tΔ12 = math.subtract(tΔ1, tΔ2);
       const BΔ12 = math.subtract(math.multiply(B1, math.inv(tΔ1), tΔ2), B2);
+
+      // iexp = np.vectorize(lambda x : -k if x==0 else 1-np.exp(k*x))
+      iexp = x => x
+      const IkU1P = math.multiply(math.inv(ɸ1P), math.diag(iexp(θ1P)), ɸ1P);
+      const IkU1N = math.multiply(math.inv(ɸ1N), math.diag(iexp(θ1N)), ɸ1N);
 
       const H1 = math.multiply(invU1PN, kU1PN);
       const H2 = math.multiply(M0, math.subtract(math.add(math.identity(c), math.multiply(U1N, H1)), kU1N));
@@ -323,28 +336,34 @@
       const 𝛼2sol = math.add(math.multiply(𝛼1sol, math.inv(tΔ2)), math.multiply(-1,vfksol), math.multiply(λ, vFksol), math.multiply(-λ, vFksol, B2, math.inv(tΔ2)));
 
       const F2solInf = math.add(math.multiply(bcsol, vη2, H19), math.multiply(δsol(c-1), H20));
-      const Wpos = 1 - math.sum(F2solInf);
+      const VQTpos = 1 - math.sum(F2solInf);
 
       const F1sol = x => math.add(math.multiply(math.add(vf0sol, math.multiply(𝛼0sol, M0, U1N)), invU1PN, math.subtract(math.expm(math.multiply(x,U1P)), math.expm(math.multiply(x,U1N)))), math.multiply(𝛼0sol, M0, math.subtract(math.identity(c), math.expm(math.multiply(x,U1N)))));
       const F2sol = x => math.add(
         math.multiply(vFksol, math.expm(math.multiply(x-k, U2N))),
         math.multiply(math.add(math.multiply(bcsol, vη2), math.multiply(𝛼1sol, M1)), math.subtract(math.identity(c), math.expm(math.multiply(x-k,U2N)))),
         math.multiply(-1, 𝛼2sol, tΔ12, M2, math.expm(math.multiply(x-k, U2N))),
-        math.multiply(𝛼2sol, tQ1(x-k), tΔ12, M2)
-      );
+        math.multiply(𝛼2sol, tQ1(x-k), tΔ12, M2));
       const Fsol = x => ((x < k) ? F1sol(x) : F2sol(x));
-      const Wsol = x => Wpos + math.sum(Fsol(x));
-      return Wsol;
+      const VQTcdf = x => VQTpos + math.sum(Fsol(x));
+
+      const f1sol = x => math.subtract(math.multiply(math.add(vf0sol, math.multiply(𝛼0sol, M0, U1N)), invU1PN, math.subtract(math.multiply(U1P,math.expm(math.multiply(x,U1P))), math.multiply(U1N,math.expm(math.multiply(x,U1N))))), math.multiply(𝛼0sol, M0, U1N, math.expm(math.multiply(x,U1N))));
+      const f2sol = x => math.subtract(
+        math.multiply(math.subtract(vFksol, math.add(math.multiply(bcsol, vη2), math.multiply(𝛼1sol, M1), math.multiply(𝛼2sol, tΔ12, M2))), U2N , math.expm(math.multiply(x-k,U2N))), math.multiply(𝛼2sol, tQ1(x-k), tΔ1, tΔ12, M2));
+      const fsol = x => ((x < k) ? f1sol(x) : f2sol(x));
+      const VQTdf = x => math.sum(fsol(x));
+
+      VQTmean = math.sum(math.multiply(math.add(vf0sol, math.multiply(𝛼0sol, M0, U1N)), invU1PN, math.subtract(math.multiply(k,math.expm(math.multiply(k,U1P))), IkU1P)));
+      VQTmean -= math.sum(math.multiply(math.add(math.multiply(math.add(vf0sol, math.multiply(𝛼0sol, M0, U1N)), invU1PN),math.multiply(𝛼0sol, M0)),math.subtract(math.multiply(k,math.expm(math.multiply(k,U1N))), IkU1N))
+        );
+      VQTmean -= math.sum(math.multiply(math.subtract(vFksol, math.add(math.multiply(bcsol, vη2), math.multiply(𝛼1sol, M1), math.multiply(𝛼2sol, tΔ12, M2))), math.subtract(invU2N, math.multiply(k, math.identity(c)))));
+      VQTmean -= math.sum(math.multiply(𝛼2sol, math.add(invtΔ1, math.multiply(k, math.identity(c))), tΔ12, M2));
+
+      return {"CDF": VQTcdf, "PDF": VQTdf, "Mean": VQTmean}
     }
 
     var lambda, mu1, mu2, k, c;
     var validated ={'CDF':false, 'PDF':false, 'Mean':false}
-
-    // apporxeq & chop functions
-    let approxeq = (v1, v2, epsilon = 0.001) => Math.abs(v1 - v2) <= epsilon;
-    let chop = (v, epsilon = 0.001) => Math.abs(v) < epsilon ? 0 : v;
-    let capitalized = name => name.charAt(0).toUpperCase() + name.slice(1)
-
 
     function remove_danger_light(el, bool) {
       if (bool) el.classList.remove('has-background-danger-light')
@@ -434,13 +453,13 @@
       el.disabled = true;
       el.innerHTML = 'computing...';
       await new Promise(r => setTimeout(r, 50));
-      var xpoints = math.multiply(20*k/250, range(250));
+      var xpoints = math.multiply(5*k/250, range(250));
       var layout = { font: {size: 12}};
       var config = {responsive: true}
       var data = []
       for (var ix = 0; ix < n_curves; ix++){
         var wfun = workload(get(c,ix), get(lambda,ix), get(mu1,ix), get(mu2,ix), get(k,ix));
-        var ypoints = math.map(xpoints, wfun);
+        var ypoints = math.map(xpoints, wfun[tab]);
         var trace = {
           name: get_legend_entry(ix),
           x: xpoints,
