@@ -455,6 +455,10 @@
       let xpoints, ypoints
       var layout = { font: {size: 12}};
       if (tab == "Mean") layout.yaxis = {type: 'log', autorange: true}
+      else layout.shapes = k.map(ik => {return {
+        type: 'line', 
+        x0: ik, y0: 0,  x1: ik, yref: 'paper', y1: 1,
+        line: { color: 'grey', width: 1.5, dash: 'dot'}}})
       let config = {responsive: true}
       let data = []
       for (var ix = 0; ix < n_curves; ix++){
@@ -463,7 +467,7 @@
           ypoints = xpoints.map(x => workload(get(c,ix), x * get(c,ix) * get(mu2,ix), get(mu1,ix), get(mu2,ix), get(k,ix))["Mean"]);
         } else {
           let wfun = workload(get(c,ix), get(lambda,ix), get(mu1,ix), get(mu2,ix), get(k,ix));
-          xpoints= range(250).map(x=>x*5*k/250);
+          xpoints= range(250).map(x=>x*5*get(k,ix)/250);
           ypoints = xpoints.map(wfun[tab]);
         }
         var trace = {
