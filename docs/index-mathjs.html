@@ -29,6 +29,7 @@
       <li class="is-active" data-tab="CDF"><a>Distribution</a></li>
       <li data-tab="PDF"><a>Density</a></li>
       <li data-tab="Mean"><a>Mean</a></li>
+      <li data-tab="MathML"><a>Math</a></li>
     </ul>
   </div>
 
@@ -153,6 +154,53 @@
         </li>
         <li class="button is-link is-outlined is-fullwidth" data-ID="btn_draw" onclick="updateGraph('Mean');"/>
           Draw
+        </li>
+      </ul>
+    </aside>
+  
+    <div class="container column is-10">
+      <div class="section">
+        
+        <div class="card is-hidden1">
+          <div class="card-header"><p class="card-header-title">Mean Virtual Queueing Time</p></div>
+          <div class="card-content">
+            <div class="content" data-ID="root"></div>
+          </div>
+        </div>
+        <br />
+        
+      </div>
+    </div>
+    
+  </section>
+
+  <section class="main-content columns is-fullheight" data-content="MathML">
+  
+    <aside class="column is-2 is-fullheight section">
+      <p class="menu-label">Parameters</p>
+      <ul class="menu-list">
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_c" value="2">  
+          <span class="icon is-left">c</span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_lambda" value="2">  
+          <span class="icon is-left">&lambda;</span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_mu1" value="0.75">  
+          <span class="icon is-left">&mu;<sub>1</sub></span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_mu2" value="1.12">
+          <span class="icon is-left">&mu;<sub>2</sub></span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_k" value="0.45">  
+          <span class="icon is-left">k</span>
+        </li>
+        <li class="button is-link is-outlined is-fullwidth" data-ID="btn_draw" onclick=""/>
+          Generate
         </li>
       </ul>
     </aside>
@@ -362,7 +410,7 @@
     }
 
     var lambda, mu1, mu2, k, c;
-    var validated ={'CDF':false, 'PDF':false, 'Mean':false}
+    var validated ={'CDF':false, 'PDF':false, 'Mean':false, 'MathML':false}
 
     function remove_danger_light(el, bool) {
       if (bool) el.classList.remove('has-background-danger-light')
@@ -414,7 +462,7 @@
       const section = document.querySelector(`section[data-content=${tab}]`);
       section.querySelectorAll("input[name^='param_']").forEach(assign_param);
       var result =  true;
-      n_curves = Math.max(...[lambda, mu1, mu2, k, c].map(x => x.length));
+      n_curves = (tab=="MathML") ? 1 : Math.max(...[lambda, mu1, mu2, k, c].map(x => x.length));
       result &= remove_danger_light(elC, is_correct(c))
       result &= remove_danger_light(elLambda, is_correct(lambda))
       result &= remove_danger_light(elMu1, is_correct(mu1))
@@ -524,7 +572,7 @@
         let data = item.getAttribute('data-content');
         if (data === selected) {
           item.classList.add(ACTIVE_CLASS);
-          if (!validated[selected]) updateGraph(selected)
+          if (!validated[selected] && selected != "MathML") updateGraph(selected)
         }
       });
     }
