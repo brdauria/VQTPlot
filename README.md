@@ -1,4 +1,4 @@
-# plot-workload
+# VQTPlot
 
 Generates the plots of the workload distributions of a special kind of queueing system.
 
