@@ -132,19 +132,19 @@
       <p class="menu-label">Parameters</p>
       <ul class="menu-list">
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_c" value="3">  
+          <input class="input" type="text" name="param_c" value="2;3;4">  
           <span class="icon is-left">c</span>
         </li>
-        <li class="control has-icons-left">
-          <input class="input" type="text" name="param_lambda" value="5">  
+        <li class="control has-icons-left" style="display: none;">
+          <input class="input" type="text" name="param_lambda" value="0.0000001">  
           <span class="icon is-left">&lambda;</span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu1" value="1.2;1.6;1.65;1.7;1.8">  
+          <input class="input" type="text" name="param_mu1" value="0.81">  
           <span class="icon is-left">&mu;<sub>1</sub></span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu2" value="2">
+          <input class="input" type="text" name="param_mu2" value="0.93">
           <span class="icon is-left">&mu;<sub>2</sub></span>
         </li>
         <li class="control has-icons-left">
@@ -177,7 +177,7 @@
   <footer class="footer">
     <div class="content">
       <span>Open the <a href="index-pyodide.html">Pyodide</a> version.</span> 
-      <span>Open the <a href="https://github.com/brdauria/VQTPlot">Github repository</a>.</span> 
+      <span>Open the <a href="https://github.com/brdauria/VQTPlot" target="_blank">Github repository</a>.</span> 
     </div>
   </footer>
   
@@ -278,8 +278,7 @@
       const tΔ12 = math.subtract(tΔ1, tΔ2);
       const BΔ12 = math.subtract(math.multiply(B1, math.inv(tΔ1), tΔ2), B2);
 
-      // iexp = np.vectorize(lambda x : -k if x==0 else 1-np.exp(k*x))
-      iexp = x => x
+      iexp = v => v.map(x => x == 0 ? -k : 1-math.exp(k*x))
       const IkU1P = math.multiply(math.inv(ɸ1P), math.diag(iexp(θ1P)), ɸ1P);
       const IkU1N = math.multiply(math.inv(ɸ1N), math.diag(iexp(θ1N)), ɸ1N);
 
@@ -453,13 +452,20 @@
       el.disabled = true;
       el.innerHTML = 'computing...';
       await new Promise(r => setTimeout(r, 50));
-      var xpoints = math.multiply(5*k/250, range(250));
+      let xpoints, ypoints
       var layout = { font: {size: 12}};
-      var config = {responsive: true}
-      var data = []
+      if (tab == "Mean") layout.yaxis = {type: 'log', autorange: true}
+      let config = {responsive: true}
+      let data = []
       for (var ix = 0; ix < n_curves; ix++){
-        var wfun = workload(get(c,ix), get(lambda,ix), get(mu1,ix), get(mu2,ix), get(k,ix));
-        var ypoints = math.map(xpoints, wfun[tab]);
+        if (tab=="Mean") {
+          xpoints = range(100).map(x=>x*0.73/100+0.135);
+          ypoints = xpoints.map(x => workload(get(c,ix), x * get(c,ix) * get(mu2,ix), get(mu1,ix), get(mu2,ix), get(k,ix))["Mean"]);
+        } else {
+          let wfun = workload(get(c,ix), get(lambda,ix), get(mu1,ix), get(mu2,ix), get(k,ix));
+          xpoints= range(250).map(x=>x*5*k/250);
+          ypoints = xpoints.map(wfun[tab]);
+        }
         var trace = {
           name: get_legend_entry(ix),
           x: xpoints,
@@ -480,8 +486,6 @@
     var ready= false;
     var lambda, mu1, mu2, k, c, n_curves;
     var elLambda, elMu1, elMu2, elK, elC;
-
-
 
     // MANAGING TABS
     const TABS = [...document.querySelectorAll('div.tabs li')];
