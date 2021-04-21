@@ -203,7 +203,20 @@
     const eigenvector = M => normalize(null_space(M.map(chop)));
 
 
+    function workloadMMc(c=2, λ=1, μ2=0.55) {
+      const rho = λ/(c*μ2)
+      const piC = 1
+      const VQTcdf = x => 1 - piC * math.exp(-c*μ2*(1-rho)*x) / (1-rho) ; 
+      const VQTdf = x => piC * math.exp(-c*μ2*(1-rho)*x) * c * μ2; 
+      VQTmean = piC/(c * μ2 * (1-rho) * (1-rho));
+
+      return {"CDF": VQTcdf, "PDF": VQTdf, "Mean": VQTmean}
+    }
+
     function workload(c=2, λ=1, μ1=0.45, μ2=0.55, k=0.1) {
+
+      if (μ1 == μ2) return workloadMMc(c, λ, μ2)
+
       // Definitions
       const μ = (i, j) => i * μ1 + j * μ2;
       const Δ0 = make_diag(c, i => μ(i,c-1-i));
