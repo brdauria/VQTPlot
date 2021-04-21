@@ -202,10 +202,23 @@
     const normalize = v => math.multiply(1/math.norm(v),v);
     const eigenvector = M => normalize(null_space(M.map(chop)));
 
+    function ErlangB(n,x) {
+      var sum = num = den = 1
+      for (i = 1; i <= n; i++) {
+        num *= x
+        den *= i
+        sum += num/den
+      }
+      return  num / den / sum
+    }
+
+    function ErlangC(n,x) {
+      return n*ErlangB(n,x)/(n-x*(1-ErlangB(n,x)))
+    }
 
     function workloadMMc(c=2, λ=1, μ2=0.55) {
       const rho = λ/(c*μ2)
-      const piC = 1
+      const piC = ErlangC(c,λ/μ2)
       const VQTcdf = x => 1 - piC * math.exp(-c*μ2*(1-rho)*x) / (1-rho) ; 
       const VQTdf = x => piC * math.exp(-c*μ2*(1-rho)*x) * c * μ2; 
       VQTmean = piC/(c * μ2 * (1-rho) * (1-rho));
@@ -427,7 +440,7 @@
       return res
     }
 
-    function chechData(tab="CDF") {
+    function checkData(tab="CDF") {
       const section = document.querySelector(`section[data-content=${tab}]`);
       section.querySelectorAll("input[name^='param_']").forEach(assign_param);
       var result =  true;
@@ -438,6 +451,8 @@
       result &= remove_danger_light(elMu2, is_correct(mu2))
       result &= remove_danger_light(elK, is_correct(k))
       
+      if (tab=="Mean") return result; // as the other checks are on lambda
+
       for (var ix = 0; ix < n_curves; ix++){
         if (approxeq(get(lambda,ix),get(c,ix)*get(mu1,ix))) {
           result=false; 
@@ -452,7 +467,7 @@
           remove_danger_light(elMu2, false)
           break
         }
-        if (get(mu2,ix)*get(c,ix)<=get(lambda,ix)) {
+        if (get(lambda,ix) >= get(mu2,ix)*get(c,ix)) {
           result=false; 
           remove_danger_light(elLambda, false)
           remove_danger_light(elMu2, false)
@@ -463,7 +478,7 @@
     }
 
     async function updateGraph(tab) {
-      if (!chechData(tab)) return false;
+      if (!checkData(tab)) return false;
       const section = document.querySelector(`section[data-content=${tab}]`);
       let el = section.querySelector("li[data-ID='btn_draw']");
       el.disabled = true;
