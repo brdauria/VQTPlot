@@ -151,6 +151,10 @@
           <input class="input" type="text" name="param_k" value="6">  
           <span class="icon is-left">k</span>
         </li>
+        <li class="control checkbox has-icons-left input">
+          <input type="checkbox" name="logscale" checked="checked">
+          Log scale
+        </li>
         <li class="button is-link is-outlined is-fullwidth" data-ID="btn_draw" onclick="updateGraph('Mean');"/>
           Draw
         </li>
@@ -454,7 +458,10 @@
       await new Promise(r => setTimeout(r, 50));
       let xpoints, ypoints
       var layout = { font: {size: 12}};
-      if (tab == "Mean") layout.yaxis = {type: 'log', autorange: true}
+      if (tab == "Mean") {
+        let checkbox = section.querySelector("input[name='logscale']");
+        if (checkbox.checked) layout.yaxis = {type: 'log', autorange: true}
+      }
       else layout.shapes = k.map(ik => {return {
         type: 'line', 
         x0: ik, y0: 0,  x1: ik, yref: 'paper', y1: 1,
