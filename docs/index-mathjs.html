@@ -218,10 +218,10 @@
 
     function workloadMMc(c=2, λ=1, μ2=0.55) {
       const rho = λ/(c*μ2)
-      const piC = ErlangC(c,λ/μ2)
-      const VQTcdf = x => 1 - piC * math.exp(-c*μ2*(1-rho)*x) / (1-rho) ; 
-      const VQTdf = x => piC * math.exp(-c*μ2*(1-rho)*x) * c * μ2; 
-      VQTmean = piC/(c * μ2 * (1-rho) * (1-rho));
+      const pWait = ErlangC(c,λ/μ2)
+      const VQTcdf = x => 1 - pWait * math.exp(-c*μ2*(1-rho)*x); 
+      const VQTdf = x => pWait * math.exp(-c*μ2*(1-rho)*x) * c * μ2 * (1-rho); 
+      VQTmean = pWait / (c * μ2 * (1-rho));
 
       return {"CDF": VQTcdf, "PDF": VQTdf, "Mean": VQTmean}
     }
