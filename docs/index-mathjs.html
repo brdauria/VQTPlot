@@ -132,7 +132,7 @@
       <p class="menu-label">Parameters</p>
       <ul class="menu-list">
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_c" value="2;3;4">  
+          <input class="input" type="text" name="param_c" value="3">  
           <span class="icon is-left">c</span>
         </li>
         <li class="control has-icons-left">
@@ -144,11 +144,11 @@
           <span class="icon is-left"><span style="font-size: x-small;">Max</span>&rho;</span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu1" value="0.81">  
+          <input class="input" type="text" name="param_mu1" value="0.8">  
           <span class="icon is-left">&mu;<sub>1</sub></span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu2" value="0.93">
+          <input class="input" type="text" name="param_mu2" value="0.795;0.8;0.805">
           <span class="icon is-left">&mu;<sub>2</sub></span>
         </li>
         <li class="control has-icons-left">
@@ -223,9 +223,9 @@
     function workloadMMc(c=2, λ=1, μ2=0.55) {
       const rho = λ/(c*μ2)
       const pWait = ErlangC(c,λ/μ2)
-      const VQTcdf = x => 1 - pWait * math.exp(-c*μ2*(1-rho)*x); 
-      const VQTdf = x => pWait * math.exp(-c*μ2*(1-rho)*x) * c * μ2 * (1-rho); 
-      VQTmean = pWait / (c * μ2 * (1-rho));
+      const VQTcdf = x => 1 - pWait * math.exp(-(c * μ2 - λ)*x); 
+      const VQTdf = x => pWait * math.exp(-(c * μ2 - λ)*x) * (c * μ2 - λ); 
+      VQTmean = pWait / (c * μ2 - λ);
 
       return {"CDF": VQTcdf, "PDF": VQTdf, "Mean": VQTmean}
     }
@@ -312,9 +312,9 @@
       const tΔ12 = math.subtract(tΔ1, tΔ2);
       const BΔ12 = math.subtract(math.multiply(B1, math.inv(tΔ1), tΔ2), B2);
 
-      iexp = v => v.map(x => x == 0 ? -k : 1-math.exp(k*x))
-      const IkU1P = math.multiply(math.inv(ɸ1P), math.diag(iexp(θ1P)), ɸ1P);
-      const IkU1N = math.multiply(math.inv(ɸ1N), math.diag(iexp(θ1N)), ɸ1N);
+      ikexp = v => v.map(x => x == 0 ? k : (math.exp(k*x)-1) / x)
+      const IkU1P = math.multiply(math.inv(ɸ1P), math.diag(ikexp(θ1P)), ɸ1P);
+      const IkU1N = math.multiply(math.inv(ɸ1N), math.diag(ikexp(θ1N)), ɸ1N);
 
       const H1 = math.multiply(invU1PN, kU1PN);
       const H2 = math.multiply(M0, math.subtract(math.add(math.identity(c), math.multiply(U1N, H1)), kU1N));
@@ -389,7 +389,7 @@
       VQTmean = math.sum(math.multiply(math.add(vf0sol, math.multiply(𝛼0sol, M0, U1N)), invU1PN, math.subtract(math.multiply(k,math.expm(math.multiply(k,U1P))), IkU1P)));
       VQTmean -= math.sum(math.multiply(math.add(math.multiply(math.add(vf0sol, math.multiply(𝛼0sol, M0, U1N)), invU1PN),math.multiply(𝛼0sol, M0)),math.subtract(math.multiply(k,math.expm(math.multiply(k,U1N))), IkU1N))
         );
-      VQTmean -= math.sum(math.multiply(math.subtract(vFksol, math.add(math.multiply(bcsol, vη2), math.multiply(𝛼1sol, M1), math.multiply(𝛼2sol, tΔ12, M2))), math.subtract(invU2N, math.multiply(k, math.identity(c)))));
+      VQTmean += math.sum(math.multiply(math.subtract(vFksol, math.add(math.multiply(bcsol, vη2), math.multiply(𝛼1sol, M1), math.multiply(𝛼2sol, tΔ12, M2))), math.subtract(invU2N, math.multiply(k, math.identity(c)))));
       VQTmean -= math.sum(math.multiply(𝛼2sol, math.add(invtΔ1, math.multiply(k, math.identity(c))), tΔ12, M2));
 
       return {"CDF": VQTcdf, "PDF": VQTdf, "Mean": VQTmean}
@@ -513,8 +513,9 @@
       let data = []
       for (var ix = 0; ix < n_curves; ix++){
         if (tab=="Mean") {
-          xpoints = range(100).map(x=>x/100*(rhoMax[0]-rhoMin[0])+rhoMin[0]);
-          ypoints = xpoints.map(x => workload(get(c,ix), x * get(c,ix) * get(mu2,ix), get(mu1,ix), get(mu2,ix), get(k,ix))["Mean"]);
+          xpoints = range(100).map(x=>(x/100*(rhoMax[0]-rhoMin[0])+rhoMin[0]));
+          plotf = x => workload(get(c,ix), x * get(c,ix) * get(mu2,ix), get(mu1,ix), get(mu2,ix), get(k,ix))["Mean"]
+          ypoints = xpoints.map(plotf);
         } else {
           let wfun = workload(get(c,ix), get(lambda,ix), get(mu1,ix), get(mu2,ix), get(k,ix));
           xpoints= range(250).map(x=>x*5*get(k,ix)/250);
