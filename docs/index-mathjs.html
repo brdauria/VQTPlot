@@ -135,9 +135,13 @@
           <input class="input" type="text" name="param_c" value="2;3;4">  
           <span class="icon is-left">c</span>
         </li>
-        <li class="control has-icons-left" style="display: none;">
-          <input class="input" type="text" name="param_lambda" value="0.0000001">  
-          <span class="icon is-left">&lambda;</span>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_rhoMin" value="0.3">  
+          <span class="icon is-left"><span style="font-size: x-small;">Min</span>&rho;</span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_rhoMax" value="0.7">  
+          <span class="icon is-left"><span style="font-size: x-small;">Max</span>&rho;</span>
         </li>
         <li class="control has-icons-left">
           <input class="input" type="text" name="param_mu1" value="0.81">  
@@ -418,6 +422,13 @@
       return res 
     }
 
+    function is_in(v,min=0,max=1,n) {
+      if (typeof(n) == "undefined") n = n_curves
+      res = v.length == 1 || v.length == n
+      res = res && v.every(x=> (x > min) && (x<max)) 
+      return res 
+    }
+
     function get(v,n) {
       return (v.length == 1) ? v[0] : v[n]
     }
@@ -446,13 +457,17 @@
       var result =  true;
       n_curves = Math.max(...[lambda, mu1, mu2, k, c].map(x => x.length));
       result &= remove_danger_light(elC, is_correct(c))
-      result &= remove_danger_light(elLambda, is_correct(lambda))
       result &= remove_danger_light(elMu1, is_correct(mu1))
       result &= remove_danger_light(elMu2, is_correct(mu2))
       result &= remove_danger_light(elK, is_correct(k))
       
-      if (tab=="Mean") return result; // as the other checks are on lambda
+      if (tab=="Mean") {
+        result &= remove_danger_light(elRhoMin, is_in(rhoMin,0.05,0.95,1))
+        result &= remove_danger_light(elRhoMax, is_in(rhoMax,0.05,0.95,1))
+        return result; // as the other checks are on lambda
+      }
 
+      result &= remove_danger_light(elLambda, is_correct(lambda))
       for (var ix = 0; ix < n_curves; ix++){
         if (approxeq(get(lambda,ix),get(c,ix)*get(mu1,ix))) {
           result=false; 
@@ -498,7 +513,7 @@
       let data = []
       for (var ix = 0; ix < n_curves; ix++){
         if (tab=="Mean") {
-          xpoints = range(100).map(x=>x*0.73/100+0.135);
+          xpoints = range(100).map(x=>x/100*(rhoMax[0]-rhoMin[0])+rhoMin[0]);
           ypoints = xpoints.map(x => workload(get(c,ix), x * get(c,ix) * get(mu2,ix), get(mu1,ix), get(mu2,ix), get(k,ix))["Mean"]);
         } else {
           let wfun = workload(get(c,ix), get(lambda,ix), get(mu1,ix), get(mu2,ix), get(k,ix));
@@ -523,8 +538,8 @@
     var cmin = 2;
     var cspread = 3;
     var ready= false;
-    var lambda, mu1, mu2, k, c, n_curves;
-    var elLambda, elMu1, elMu2, elK, elC;
+    var lambda, mu1, mu2, k, c, n_curves, rhoMin, rhoMax;
+    var elLambda, elMu1, elMu2, elK, elC, elRhoMin, elRhoMax;
 
     // MANAGING TABS
     const TABS = [...document.querySelectorAll('div.tabs li')];
