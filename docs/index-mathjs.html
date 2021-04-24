@@ -24,7 +24,7 @@
   </section>
 
   <div id="tabs-with-content">
-  <div class="tabs is-toggle is-large is-centered">
+  <div class="tabs is-toggle is-large is-centered is-size-5-mobile">
     <ul>
       <li class="is-active" data-tab="CDF"><a>Distribution</a></li>
       <li data-tab="PDF"><a>Density</a></li>
@@ -39,7 +39,7 @@
       <p class="menu-label">Parameters</p>
       <ul class="menu-list">
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_c" value="3;2;4;5">  
+          <input class="input" type="text" name="param_c" value="3">  
           <span class="icon is-left">c</span>
         </li>
         <li class="control has-icons-left">
@@ -47,15 +47,15 @@
           <span class="icon is-left">&lambda;</span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu1" value="0.75">  
+          <input class="input" type="text" name="param_mu1" value="0.8">  
           <span class="icon is-left">&mu;<sub>1</sub></span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu2" value="1.12">
+          <input class="input" type="text" name="param_mu2" value="0.7;0.8;0.9">
           <span class="icon is-left">&mu;<sub>2</sub></span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_k" value="0.45">  
+          <input class="input" type="text" name="param_k" value="5">  
           <span class="icon is-left">k</span>
         </li>
         <li class="button is-link is-outlined is-fullwidth" data-ID="btn_draw" onclick="updateGraph('CDF');"/>
@@ -90,19 +90,19 @@
           <span class="icon is-left">c</span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_lambda" value="5">  
+          <input class="input" type="text" name="param_lambda" value="2">  
           <span class="icon is-left">&lambda;</span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu1" value="1.2;1.6;1.65;1.7;1.8">  
+          <input class="input" type="text" name="param_mu1" value="0.3;0.6;0.67;0.74;0.8">  
           <span class="icon is-left">&mu;<sub>1</sub></span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu2" value="2">
+          <input class="input" type="text" name="param_mu2" value="0.8">
           <span class="icon is-left">&mu;<sub>2</sub></span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_k" value="6">  
+          <input class="input" type="text" name="param_k" value="5">  
           <span class="icon is-left">k</span>
         </li>
         <li class="button is-link is-outlined is-fullwidth" data-ID="btn_draw" onclick="updateGraph('PDF');"/>
@@ -133,24 +133,32 @@
       <p class="menu-label">Parameters</p>
       <ul class="menu-list">
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_c" value="2;3;4">  
+          <input class="input" type="text" name="param_c" value="3">  
           <span class="icon is-left">c</span>
         </li>
-        <li class="control has-icons-left" style="display: none;">
-          <input class="input" type="text" name="param_lambda" value="0.0000001">  
-          <span class="icon is-left">&lambda;</span>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_rhoMin" value="0.3">  
+          <span class="icon is-left"><span style="font-size: x-small;">Min</span>&rho;</span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu1" value="0.81">  
+          <input class="input" type="text" name="param_rhoMax" value="0.7">  
+          <span class="icon is-left"><span style="font-size: x-small;">Max</span>&rho;</span>
+        </li>
+        <li class="control has-icons-left">
+          <input class="input" type="text" name="param_mu1" value="0.8">  
           <span class="icon is-left">&mu;<sub>1</sub></span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_mu2" value="0.93">
+          <input class="input" type="text" name="param_mu2" value="0.7;0.8;0.9">
           <span class="icon is-left">&mu;<sub>2</sub></span>
         </li>
         <li class="control has-icons-left">
-          <input class="input" type="text" name="param_k" value="6">  
+          <input class="input" type="text" name="param_k" value="5">  
           <span class="icon is-left">k</span>
+        </li>
+        <li class="control checkbox has-icons-left input">
+          <input type="checkbox" name="logscale" checked="checked">
+          Log scale
         </li>
         <li class="button is-link is-outlined is-fullwidth" data-ID="btn_draw" onclick="updateGraph('Mean');"/>
           Draw
@@ -246,8 +254,34 @@
     const normalize = v => math.multiply(1/math.norm(v),v);
     const eigenvector = M => normalize(null_space(M.map(chop)));
 
+    function ErlangB(n,x) {
+      var sum = num = den = 1
+      for (i = 1; i <= n; i++) {
+        num *= x
+        den *= i
+        sum += num/den
+      }
+      return  num / den / sum
+    }
+
+    function ErlangC(n,x) {
+      return n*ErlangB(n,x)/(n-x*(1-ErlangB(n,x)))
+    }
+
+    function workloadMMc(c=2, λ=1, μ2=0.55) {
+      const rho = λ/(c*μ2)
+      const pWait = ErlangC(c,λ/μ2)
+      const VQTcdf = x => 1 - pWait * math.exp(-(c * μ2 - λ)*x); 
+      const VQTdf = x => pWait * math.exp(-(c * μ2 - λ)*x) * (c * μ2 - λ); 
+      VQTmean = pWait / (c * μ2 - λ);
+
+      return {"CDF": VQTcdf, "PDF": VQTdf, "Mean": VQTmean}
+    }
 
     function workload(c=2, λ=1, μ1=0.45, μ2=0.55, k=0.1) {
+
+      if (μ1 == μ2) return workloadMMc(c, λ, μ2)
+
       // Definitions
       const μ = (i, j) => i * μ1 + j * μ2;
       const Δ0 = make_diag(c, i => μ(i,c-1-i));
@@ -326,9 +360,9 @@
       const tΔ12 = math.subtract(tΔ1, tΔ2);
       const BΔ12 = math.subtract(math.multiply(B1, math.inv(tΔ1), tΔ2), B2);
 
-      iexp = v => v.map(x => x == 0 ? -k : 1-math.exp(k*x))
-      const IkU1P = math.multiply(math.inv(ɸ1P), math.diag(iexp(θ1P)), ɸ1P);
-      const IkU1N = math.multiply(math.inv(ɸ1N), math.diag(iexp(θ1N)), ɸ1N);
+      ikexp = v => v.map(x => x == 0 ? k : (math.exp(k*x)-1) / x)
+      const IkU1P = math.multiply(math.inv(ɸ1P), math.diag(ikexp(θ1P)), ɸ1P);
+      const IkU1N = math.multiply(math.inv(ɸ1N), math.diag(ikexp(θ1N)), ɸ1N);
 
       const H1 = math.multiply(invU1PN, kU1PN);
       const H2 = math.multiply(M0, math.subtract(math.add(math.identity(c), math.multiply(U1N, H1)), kU1N));
@@ -403,7 +437,7 @@
       VQTmean = math.sum(math.multiply(math.add(vf0sol, math.multiply(𝛼0sol, M0, U1N)), invU1PN, math.subtract(math.multiply(k,math.expm(math.multiply(k,U1P))), IkU1P)));
       VQTmean -= math.sum(math.multiply(math.add(math.multiply(math.add(vf0sol, math.multiply(𝛼0sol, M0, U1N)), invU1PN),math.multiply(𝛼0sol, M0)),math.subtract(math.multiply(k,math.expm(math.multiply(k,U1N))), IkU1N))
         );
-      VQTmean -= math.sum(math.multiply(math.subtract(vFksol, math.add(math.multiply(bcsol, vη2), math.multiply(𝛼1sol, M1), math.multiply(𝛼2sol, tΔ12, M2))), math.subtract(invU2N, math.multiply(k, math.identity(c)))));
+      VQTmean += math.sum(math.multiply(math.subtract(vFksol, math.add(math.multiply(bcsol, vη2), math.multiply(𝛼1sol, M1), math.multiply(𝛼2sol, tΔ12, M2))), math.subtract(invU2N, math.multiply(k, math.identity(c)))));
       VQTmean -= math.sum(math.multiply(𝛼2sol, math.add(invtΔ1, math.multiply(k, math.identity(c))), tΔ12, M2));
 
       return {"CDF": VQTcdf, "PDF": VQTdf, "Mean": VQTmean}
@@ -436,6 +470,13 @@
       return res 
     }
 
+    function is_in(v,min=0,max=1,n) {
+      if (typeof(n) == "undefined") n = n_curves
+      res = v.length == 1 || v.length == n
+      res = res && v.every(x=> (x > min) && (x<max)) 
+      return res 
+    }
+
     function get(v,n) {
       return (v.length == 1) ? v[0] : v[n]
     }
@@ -458,17 +499,23 @@
       return res
     }
 
-    function chechData(tab="CDF") {
+    function checkData(tab="CDF") {
       const section = document.querySelector(`section[data-content=${tab}]`);
       section.querySelectorAll("input[name^='param_']").forEach(assign_param);
       var result =  true;
       n_curves = (tab=="MathML") ? 1 : Math.max(...[lambda, mu1, mu2, k, c].map(x => x.length));
       result &= remove_danger_light(elC, is_correct(c))
-      result &= remove_danger_light(elLambda, is_correct(lambda))
       result &= remove_danger_light(elMu1, is_correct(mu1))
       result &= remove_danger_light(elMu2, is_correct(mu2))
       result &= remove_danger_light(elK, is_correct(k))
       
+      if (tab=="Mean") {
+        result &= remove_danger_light(elRhoMin, is_in(rhoMin,0.05,0.95,1))
+        result &= remove_danger_light(elRhoMax, is_in(rhoMax,0.05,0.95,1))
+        return result; // as the other checks are on lambda
+      }
+
+      result &= remove_danger_light(elLambda, is_correct(lambda))
       for (var ix = 0; ix < n_curves; ix++){
         if (approxeq(get(lambda,ix),get(c,ix)*get(mu1,ix))) {
           result=false; 
@@ -483,7 +530,7 @@
           remove_danger_light(elMu2, false)
           break
         }
-        if (get(mu2,ix)*get(c,ix)<=get(lambda,ix)) {
+        if (get(lambda,ix) >= get(mu2,ix)*get(c,ix)) {
           result=false; 
           remove_danger_light(elLambda, false)
           remove_danger_light(elMu2, false)
@@ -494,15 +541,23 @@
     }
 
     async function updateGraph(tab) {
-      if (!chechData(tab)) return false;
+      if (!checkData(tab)) return false;
       const section = document.querySelector(`section[data-content=${tab}]`);
       let el = section.querySelector("li[data-ID='btn_draw']");
       el.disabled = true;
       el.innerHTML = 'computing...';
       await new Promise(r => setTimeout(r, 50));
       let xpoints, ypoints
-      var layout = { font: {size: 12}};
-      if (tab == "Mean") layout.yaxis = {type: 'log', autorange: true}
+      var layout = {
+        font: {size: 12}, 
+        margin: {l: 5, r: 5, b: 25, t: 60, pad: 4},
+        showlegend: true,
+        legend: { x: 1, xanchor: 'right', y: 0.1}
+      };
+      if (tab == "Mean") {
+        let checkbox = section.querySelector("input[name='logscale']");
+        if (checkbox.checked) layout.yaxis = {type: 'log', autorange: true}
+      }
       else layout.shapes = k.map(ik => {return {
         type: 'line', 
         x0: ik, y0: 0,  x1: ik, yref: 'paper', y1: 1,
@@ -511,8 +566,9 @@
       let data = []
       for (var ix = 0; ix < n_curves; ix++){
         if (tab=="Mean") {
-          xpoints = range(100).map(x=>x*0.73/100+0.135);
-          ypoints = xpoints.map(x => workload(get(c,ix), x * get(c,ix) * get(mu2,ix), get(mu1,ix), get(mu2,ix), get(k,ix))["Mean"]);
+          xpoints = range(100).map(x=>(x/100*(rhoMax[0]-rhoMin[0])+rhoMin[0]));
+          plotf = x => workload(get(c,ix), x * get(c,ix) * get(mu2,ix), get(mu1,ix), get(mu2,ix), get(k,ix))["Mean"]
+          ypoints = xpoints.map(plotf);
         } else {
           let wfun = workload(get(c,ix), get(lambda,ix), get(mu1,ix), get(mu2,ix), get(k,ix));
           xpoints= range(250).map(x=>x*5*get(k,ix)/250);
@@ -524,6 +580,7 @@
           y: ypoints,
           type: 'scatter'
         }
+        if (get(mu1,ix) == get(mu2,ix)) {trace.line = {dash: 'dashdot', width: 2}}
         data.push(trace)
       }
       let div = section.querySelector("div[data-ID='root']");
@@ -536,8 +593,8 @@
     var cmin = 2;
     var cspread = 3;
     var ready= false;
-    var lambda, mu1, mu2, k, c, n_curves;
-    var elLambda, elMu1, elMu2, elK, elC;
+    var lambda, mu1, mu2, k, c, n_curves, rhoMin, rhoMax;
+    var elLambda, elMu1, elMu2, elK, elC, elRhoMin, elRhoMax;
 
     // MANAGING TABS
     const TABS = [...document.querySelectorAll('div.tabs li')];
