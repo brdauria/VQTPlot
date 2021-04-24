@@ -24,7 +24,7 @@
   </section>
 
   <div id="tabs-with-content">
-  <div class="tabs is-toggle is-large is-centered">
+  <div class="tabs is-toggle is-large is-centered is-size-5-mobile">
     <ul>
       <li class="is-active" data-tab="CDF"><a>Distribution</a></li>
       <li data-tab="PDF"><a>Density</a></li>
@@ -500,7 +500,12 @@
       el.innerHTML = 'computing...';
       await new Promise(r => setTimeout(r, 50));
       let xpoints, ypoints
-      var layout = { font: {size: 12}};
+      var layout = {
+        font: {size: 12}, 
+        margin: {l: 5, r: 5, b: 25, t: 60, pad: 4},
+        showlegend: true,
+        legend: { x: 1, xanchor: 'right', y: 0.1}
+      };
       if (tab == "Mean") {
         let checkbox = section.querySelector("input[name='logscale']");
         if (checkbox.checked) layout.yaxis = {type: 'log', autorange: true}

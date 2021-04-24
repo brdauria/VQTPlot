@@ -1,11 +1,12 @@
+html, body {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
 #tabs-with-content .tabs:not(:last-child) {
     margin-bottom: 0;
   }
   
-#tabs-with-content .main-content {
+#tabs-with-content .main-content:not(.is-active){
    display: none;
-}
-
-#tabs-with-content .main-content.is-active {
-    display: flex;
 }
