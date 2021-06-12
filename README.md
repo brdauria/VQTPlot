@@ -8,7 +8,6 @@ Whenever a customer arrives it is tagged as customer of type 1 on arrival the wo
 
 All customers have a service time exponential distributed, type 1 customers with parameter `μ1` and type 2 customers with parameter `μ2`.
 
+You can run the code in your browser here on [GitHub Pages](https://brdauria.github.io/VQTPlot/)
 
-You can run the code in your browser here on [GitHub Pages](https://brdauria.github.io/workloadPlot/)
-
-or run the jupyther notebook in python on [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/brdauria/workloadPlot/HEAD)
+or run the jupyther notebook in python on [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/brdauria/VQTPlot/HEAD)
