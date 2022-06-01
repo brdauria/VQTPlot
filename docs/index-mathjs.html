@@ -222,6 +222,7 @@
     }
 
     function workloadMMc(c=2, λ=1, μ2=0.55) {
+      // it works also for c=1
       const rho = λ/(c*μ2)
       const pWait = ErlangC(c,λ/μ2)
       const VQTcdf = x => 1 - pWait * math.exp(-(c * μ2 - λ)*x); 
@@ -231,9 +232,35 @@
       return {"CDF": VQTcdf, "PDF": VQTdf, "Mean": VQTmean}
     }
 
-    function workload(c=2, λ=1, μ1=0.45, μ2=0.55, k=0.1) {
+    function workloadSingleServer(λ=1, μ1=0.45, μ2=0.55, k=0.1) {
+      // same service rates (no need of level k)
+      if (μ1 == μ2) return workloadMMc(1, λ, μ2)
+      
+      const rho = λ/μ2
+      const pWait = ErlangC(1,λ/μ2)
+      const ᴨ = (μ1/λ-1)*(μ2/λ-1)/((μ1/λ)*(μ2/λ-1)-(μ2/μ1-1)*math.exp(-(μ1-λ)*k))
 
-      if (μ1 == μ2) return workloadMMc(c, λ, μ2)
+      // Constructing the workload function
+      const F1sol = x => ᴨ*(μ1-λ*math.exp(-(μ1-λ)*x))/(μ1-λ);
+      const F2sol = x => ᴨ*(-μ1/(λ-μ1)-λ/(μ1-λ)*math.exp(-(μ1-λ)*k)+math.exp(-(μ1-λ)*k)*λ/μ1/(μ2-λ)/(μ2-μ1-λ)*(λ*μ1*math.exp(-(μ2-λ)*(x-k))+(μ2-μ1-λ)*μ2-(μ2-μ1)*(μ2-λ)*math.exp(-μ1*(x-k))));
+      const Fsol = x => ((x < k) ? F1sol(x) : F2sol(x));
+      const VQTcdf = Fsol;
+
+      const f1sol = x => λ*ᴨ*math.exp(-(μ1-λ)*x);
+      const f2sol = x => λ*ᴨ*math.exp(-(μ1-λ)*k)/(μ2-μ1-λ)*((μ2-μ1)*math.exp(-μ1*(x-k))-λ*math.exp(-(μ2-λ)*(x-k)));
+      const fsol = x => ((x < k) ? f1sol(x) : f2sol(x));
+      const VQTdf = fsol;
+
+      const VQTmean = λ*ᴨ*((1-math.exp(-(μ1-λ)*k)*(1+k*(μ1-λ)))/(μ1-λ)/(μ1-λ)+math.exp(-(μ1-λ)*k)/μ1/μ1/(μ2-λ)/(μ2-λ)*(λ*μ1-λ*(1+k*μ1)*μ2+(1+k*μ1)*μ2*μ2))
+      return {"CDF": VQTcdf, "PDF": VQTdf, "Mean": VQTmean}
+    }
+
+    function workload(c=2, λ=1, μ1=0.45, μ2=0.55, k=0.1) {
+      // same service rates (no need of level k)
+      if (μ1 == μ2) return workloadMMc(c, λ, μ2) 
+
+      // one server (no need to specify c)
+      if (c == 1) return workloadSingleServer(λ, μ1, μ2, k)
 
       // Definitions
       const μ = (i, j) => i * μ1 + j * μ2;
@@ -434,6 +461,10 @@
       return (v.length == 1) ? v[0] : v[n]
     }
 
+    function show_legend() {
+      return ((c.length != 1) || (mu1.length != 1) || (mu2.length != 1))
+    }
+
     function get_legend_entry(n) {
       res = ""
       if (c.length != 1) res += `c=${c[n]}`
@@ -504,7 +535,7 @@
       var layout = {
         font: {size: 12}, 
         margin: {l: 5, r: 5, b: 25, t: 60, pad: 4},
-        showlegend: true,
+        showlegend: show_legend(),
         legend: { x: 1, xanchor: 'right', y: 0.1}
       };
       if (tab == "Mean") {
